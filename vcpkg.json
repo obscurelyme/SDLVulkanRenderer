@@ -1,0 +1,13 @@
+{
+  "name": "vulkan-demo",
+  "version-string": "1.0.0",
+  "dependencies": [
+    "fmt",
+    {
+      "name": "sdl2",
+      "default-features": false,
+      "features": ["vulkan"]
+    }
+  ],
+  "builtin-baseline": "b3cfaaf1bba70febd07c2f672ae590dc5d914180"
+}
