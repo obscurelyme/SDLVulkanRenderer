@@ -28,6 +28,10 @@ void Application::Run() {
       }
     }
 
+    // renderer->Start();
+    // renderer->Clear();
+    // renderer->Present();
+
     SDL_Delay(16);
   }
 }

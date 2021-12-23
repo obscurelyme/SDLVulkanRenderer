@@ -115,6 +115,9 @@ private:
   void CreateSwapChain();
   void CreateImageViews();
   void CreateGraphicsPipeline();
+  void
+  SetupFixedFunctionsPipeline(VkPipelineShaderStageCreateInfo shaderStages[]);
+  void CreateRenderPass();
 
   void CreateSurface();
 
@@ -148,6 +151,10 @@ private:
   VkExtent2D swapChainExtent;
 
   std::vector<VkImageView> swapChainImageViews;
+
+  VkRenderPass renderPass;
+  VkPipelineLayout pipelineLayout;
+  VkPipeline graphicsPipeline;
 };
 
 #endif
