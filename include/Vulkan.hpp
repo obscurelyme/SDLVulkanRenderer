@@ -118,6 +118,7 @@ private:
   void
   SetupFixedFunctionsPipeline(VkPipelineShaderStageCreateInfo shaderStages[]);
   void CreateRenderPass();
+  void CreateFramebuffer();
 
   void CreateSurface();
 
@@ -155,6 +156,8 @@ private:
   VkRenderPass renderPass;
   VkPipelineLayout pipelineLayout;
   VkPipeline graphicsPipeline;
+
+  std::vector<VkFramebuffer> swapChainFramebuffers;
 };
 
 #endif

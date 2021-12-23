@@ -24,11 +24,15 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window)
   CreateImageViews();
   CreateRenderPass();
   CreateGraphicsPipeline();
+  CreateFramebuffer();
 }
 
 Vulkan::~Vulkan() {
   if (enableValidationLayers) {
     DestroyDebugUtilsMessengerEXT(nullptr);
+  }
+  for (auto framebuffer : swapChainFramebuffers) {
+    vkDestroyFramebuffer(vulkanLogicalDevice, framebuffer, nullptr);
   }
   for (auto imageView : swapChainImageViews) {
     vkDestroyImageView(vulkanLogicalDevice, imageView, nullptr);
@@ -781,5 +785,26 @@ void Vulkan::CreateRenderPass() {
         fmt::format(
             "Unable to create Vulkan Render Pass.\nVulkan Error Code: [{}]",
             result));
+  }
+}
+
+void Vulkan::CreateFramebuffer() {
+  swapChainFramebuffers.resize(swapChainImageViews.size());
+  for (size_t i = 0; i < swapChainImageViews.size(); i++) {
+    VkImageView attachments[] = {swapChainImageViews[i]};
+
+    VkFramebufferCreateInfo framebufferInfo{};
+    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebufferInfo.renderPass = renderPass;
+    framebufferInfo.attachmentCount = 1;
+    framebufferInfo.pAttachments = attachments;
+    framebufferInfo.width = swapChainExtent.width;
+    framebufferInfo.height = swapChainExtent.height;
+    framebufferInfo.layers = 1;
+
+    if (vkCreateFramebuffer(vulkanLogicalDevice, &framebufferInfo, nullptr,
+                            &swapChainFramebuffers[i]) != VK_SUCCESS) {
+      throw std::runtime_error("failed to create framebuffer!");
+    }
   }
 }
