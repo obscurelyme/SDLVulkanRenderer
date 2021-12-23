@@ -1,4 +1,5 @@
 #include "Application.hpp"
+#include "VulkanShaderManager.hpp"
 
 Application::Application(const std::string &name, int windowWidth,
                          int windowHeight)

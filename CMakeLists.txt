@@ -10,7 +10,12 @@ find_package(Vulkan REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 
-add_executable(HelloVulkan WIN32 MACOSX_BUNDLE src/main.cpp src/Vulkan.cpp src/Application.cpp)
+add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
+  src/main.cpp
+  src/Vulkan.cpp
+  src/Application.cpp
+  src/VulkanShaderManager.cpp
+)
 target_include_directories(HelloVulkan PRIVATE include)
 
 if (VULKAN_FOUND)
@@ -40,4 +45,7 @@ include(CPack)
 if (APPLE)
   install(DIRECTORY "resources/vulkan" DESTINATION "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.app/Contents/Resources/")
   install(FILES "vendor/vulkan/macos/libMoltenVK.dylib" "vendor/vulkan/macos/libvulkan.dylib" DESTINATION "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.app/Contents/Frameworks/")
+  install(CODE "
+    execute_process(COMMAND sh -c \"cp ./shaders/*.spv ${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.app/Contents/Resources\" WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+  ")
 endif()
