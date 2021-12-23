@@ -14,7 +14,7 @@ If on Apple, you will need to run the following command to install Resources and
 cmake -P ./build/cmake_install.cmake
 ```
 
-You will then have the proper ICD files and dylibs located where they are required in order to run a Vulkan application on MacOS.
+You will then have the proper ICD files and dylibs located where they are required in order to run a Vulkan application on MacOS. This is required as Apple does not support Vulkan natively, and needs to leverage the MoltenVK loader at runtime, which will translate the Vulkan API calls to Metal API calls. On Windows and Linux, it is expected that the end user will user will have Vulkan installed at the system level by their GPU driver.
 
 Run cmake build using `cmake-tools` within VSCode.
 
