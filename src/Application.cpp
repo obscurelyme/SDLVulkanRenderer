@@ -29,8 +29,6 @@ void Application::Run() {
     }
 
     renderer->Draw();
-    // renderer->Clear();
-    // renderer->Present();
 
     SDL_Delay(16);
   }
