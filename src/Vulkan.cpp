@@ -25,12 +25,15 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window)
   CreateRenderPass();
   CreateGraphicsPipeline();
   CreateFramebuffer();
+  CreateCommandPool();
+  CreateCommandBuffers();
 }
 
 Vulkan::~Vulkan() {
   if (enableValidationLayers) {
     DestroyDebugUtilsMessengerEXT(nullptr);
   }
+  vkDestroyCommandPool(vulkanLogicalDevice, commandPool, nullptr);
   for (auto framebuffer : swapChainFramebuffers) {
     vkDestroyFramebuffer(vulkanLogicalDevice, framebuffer, nullptr);
   }
@@ -805,6 +808,86 @@ void Vulkan::CreateFramebuffer() {
     if (vkCreateFramebuffer(vulkanLogicalDevice, &framebufferInfo, nullptr,
                             &swapChainFramebuffers[i]) != VK_SUCCESS) {
       throw std::runtime_error("failed to create framebuffer!");
+    }
+  }
+}
+
+void Vulkan::CreateCommandPool() {
+  QueueFamilyIndices queueFamilyIndices =
+      FindQueueFamilies(vulkanPhysicalDevice);
+
+  VkCommandPoolCreateInfo poolInfo{};
+  poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+  poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+  poolInfo.flags = 0; // Optional
+
+  VkResult result = vkCreateCommandPool(vulkanLogicalDevice, &poolInfo, nullptr,
+                                        &commandPool);
+  if (result != VK_SUCCESS) {
+    ShowError(
+        "Vulkan Command Pool",
+        fmt::format("Unable to create command pool.\nVulkan Error Code: [{}]",
+                    result));
+  }
+}
+
+void Vulkan::CreateCommandBuffers() {
+  commandBuffers.resize(swapChainFramebuffers.size());
+
+  VkCommandBufferAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.commandPool = commandPool;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+
+  VkResult result = vkAllocateCommandBuffers(vulkanLogicalDevice, &allocInfo,
+                                             commandBuffers.data());
+  if (result != VK_SUCCESS) {
+    ShowError("Vulkan Command Buffers",
+              fmt::format(
+                  "Unable to create command buffers.\nVulkan Error Code: [{}]",
+                  result));
+  }
+
+  for (size_t i = 0; i < commandBuffers.size(); i++) {
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = 0;                  // Optional
+    beginInfo.pInheritanceInfo = nullptr; // Optional
+
+    result = vkBeginCommandBuffer(commandBuffers[i], &beginInfo);
+
+    if (result != VK_SUCCESS) {
+      ShowError("Vulkan Command Buffers",
+                fmt::format(
+                    "Unable to begin command buffers.\nVulkan Error Code: [{}]",
+                    result));
+    }
+
+    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    VkRenderPassBeginInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.framebuffer = swapChainFramebuffers[i];
+    renderPassInfo.renderArea.offset = {0, 0};
+    renderPassInfo.renderArea.extent = swapChainExtent;
+    renderPassInfo.clearValueCount = 1;
+    renderPassInfo.pClearValues = &clearColor;
+
+    vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo,
+                         VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      graphicsPipeline);
+    vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+    vkCmdEndRenderPass(commandBuffers[i]);
+
+    result = vkEndCommandBuffer(commandBuffers[i]);
+    if (result != VK_SUCCESS) {
+      ShowError(
+          "Vulkan Command Buffers",
+          fmt::format("Unable to end command buffers.\nVulkan Error Code: [{}]",
+                      result));
     }
   }
 }

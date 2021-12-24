@@ -119,6 +119,8 @@ private:
   SetupFixedFunctionsPipeline(VkPipelineShaderStageCreateInfo shaderStages[]);
   void CreateRenderPass();
   void CreateFramebuffer();
+  void CreateCommandPool();
+  void CreateCommandBuffers();
 
   void CreateSurface();
 
@@ -158,6 +160,9 @@ private:
   VkPipeline graphicsPipeline;
 
   std::vector<VkFramebuffer> swapChainFramebuffers;
+
+  VkCommandPool commandPool;
+  std::vector<VkCommandBuffer> commandBuffers;
 };
 
 #endif
