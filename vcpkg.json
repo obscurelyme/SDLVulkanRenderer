@@ -6,7 +6,14 @@
     {
       "name": "sdl2",
       "default-features": false,
-      "features": ["vulkan"]
+      "features": ["vulkan"],
+      "platform": "windows | osx"
+    },
+    {
+      "name": "sdl2",
+      "default-features": false,
+      "features": ["vulkan", "x11"],
+      "platform": "linux"
     }
   ],
   "builtin-baseline": "b3cfaaf1bba70febd07c2f672ae590dc5d914180"
