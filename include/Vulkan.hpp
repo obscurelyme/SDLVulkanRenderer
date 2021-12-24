@@ -32,6 +32,8 @@ public:
   VkInstance InstanceHandle() const;
 
   void Draw();
+  void RecreateSwapChain();
+  void FramebufferResize();
 
   /**
    * @brief VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: Diagnostic message
@@ -66,6 +68,7 @@ public:
   }
 
 private:
+  void CleanupSwapChain();
   void InitVulkan();
   bool CheckValidationLayerSupport();
   void GetRequiredExtensions();
@@ -174,6 +177,7 @@ private:
   size_t currentFrame = 0;
 
   static int MAX_FRAMES_IN_FLIGHT;
+  bool framebufferResized;
 };
 
 #endif

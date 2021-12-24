@@ -12,7 +12,7 @@ int Vulkan::MAX_FRAMES_IN_FLIGHT = 2;
 Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window)
     : enableValidationLayers(true), vulkanInstanceInitialized(false),
       windowHandle(window), vulkanAppInfo({}), vulkanInstanceCreateInfo({}),
-      vulkanPhysicalDevice(VK_NULL_HANDLE) {
+      vulkanPhysicalDevice(VK_NULL_HANDLE), framebufferResized(false) {
   vulkanAppInfo.pApplicationName = applicationName.c_str();
   vulkanAppInfo.pEngineName = applicationName.c_str();
 
@@ -38,7 +38,9 @@ Vulkan::~Vulkan() {
   if (enableValidationLayers) {
     DestroyDebugUtilsMessengerEXT(nullptr);
   }
-  vkDestroyCommandPool(vulkanLogicalDevice, commandPool, nullptr);
+
+  CleanupSwapChain();
+
   for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
     vkDestroySemaphore(vulkanLogicalDevice, renderFinishedSemaphores[i],
                        nullptr);
@@ -46,16 +48,7 @@ Vulkan::~Vulkan() {
                        nullptr);
     vkDestroyFence(vulkanLogicalDevice, inFlightFences[i], nullptr);
   }
-  for (auto framebuffer : swapChainFramebuffers) {
-    vkDestroyFramebuffer(vulkanLogicalDevice, framebuffer, nullptr);
-  }
-  for (auto imageView : swapChainImageViews) {
-    vkDestroyImageView(vulkanLogicalDevice, imageView, nullptr);
-  }
-  vkDestroyPipeline(vulkanLogicalDevice, graphicsPipeline, nullptr);
-  vkDestroyPipelineLayout(vulkanLogicalDevice, pipelineLayout, nullptr);
-  vkDestroyRenderPass(vulkanLogicalDevice, renderPass, nullptr);
-  vkDestroySwapchainKHR(vulkanLogicalDevice, vulkanSwapChain, nullptr);
+  vkDestroyCommandPool(vulkanLogicalDevice, commandPool, nullptr);
   vkDestroyDevice(vulkanLogicalDevice, nullptr);
   if (vulkanInstanceInitialized) {
     vkDestroySurfaceKHR(vulkanInstance, vulkanSurface, nullptr);
@@ -63,14 +56,67 @@ Vulkan::~Vulkan() {
   }
 }
 
+void Vulkan::CleanupSwapChain() {
+  for (auto framebuffer : swapChainFramebuffers) {
+    vkDestroyFramebuffer(vulkanLogicalDevice, framebuffer, nullptr);
+  }
+  vkFreeCommandBuffers(vulkanLogicalDevice, commandPool,
+                       static_cast<uint32_t>(commandBuffers.size()),
+                       commandBuffers.data());
+  vkDestroyPipeline(vulkanLogicalDevice, graphicsPipeline, nullptr);
+  vkDestroyPipelineLayout(vulkanLogicalDevice, pipelineLayout, nullptr);
+  vkDestroyRenderPass(vulkanLogicalDevice, renderPass, nullptr);
+  for (auto imageView : swapChainImageViews) {
+    vkDestroyImageView(vulkanLogicalDevice, imageView, nullptr);
+  }
+  vkDestroySwapchainKHR(vulkanLogicalDevice, vulkanSwapChain, nullptr);
+}
+
+void Vulkan::FramebufferResize() { framebufferResized = true; }
+
+void Vulkan::RecreateSwapChain() {
+  vkDeviceWaitIdle(vulkanLogicalDevice);
+
+  CleanupSwapChain();
+  vkDestroyCommandPool(vulkanLogicalDevice, commandPool, nullptr);
+
+  CreateSwapChain();
+  CreateImageViews();
+  CreateRenderPass();
+  CreateGraphicsPipeline();
+  CreateFramebuffer();
+  CreateCommandPool();
+  CreateCommandBuffers();
+}
+
 void Vulkan::Draw() {
   vkWaitForFences(vulkanLogicalDevice, 1, &inFlightFences[currentFrame],
                   VK_TRUE, UINT64_MAX);
 
   uint32_t imageIndex;
-  vkAcquireNextImageKHR(vulkanLogicalDevice, vulkanSwapChain, UINT64_MAX,
-                        imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE,
-                        &imageIndex);
+  VkResult nxtImageResult = vkAcquireNextImageKHR(
+      vulkanLogicalDevice, vulkanSwapChain, UINT64_MAX,
+      imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
+
+  if (nxtImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
+    RecreateSwapChain();
+    return;
+  } else if (nxtImageResult != VK_SUCCESS &&
+             nxtImageResult != VK_SUBOPTIMAL_KHR) {
+    ShowError(
+        "Vulkan Draw",
+        fmt::format(
+            "Vulkan Draw error occured, could not acquire next image.\n[{}]",
+            nxtImageResult));
+  }
+
+  if (nxtImageResult != VK_SUCCESS) {
+    ShowError(
+        "Vulkan Draw",
+        fmt::format(
+            "Vulkan Draw error occured, could not acquire next image.\n[{}]",
+            nxtImageResult));
+  }
 
   if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
     vkWaitForFences(vulkanLogicalDevice, 1, &imagesInFlight[imageIndex],
@@ -97,7 +143,12 @@ void Vulkan::Draw() {
   vkResetFences(vulkanLogicalDevice, 1, &inFlightFences[currentFrame]);
   VkResult result = vkQueueSubmit(vulkanGraphicsQueue, 1, &submitInfo,
                                   inFlightFences[currentFrame]);
-  if (result != VK_SUCCESS) {
+  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
+      framebufferResized) {
+    std::cerr << "Recreating swap chain..." << std::endl;
+    framebufferResized = false;
+    RecreateSwapChain();
+  } else if (result != VK_SUCCESS) {
     ShowError(
         "Vulkan Queue Submit",
         fmt::format("Failed to submit draw command to buffer: [{}]", result));
