@@ -28,7 +28,7 @@ void Application::Run() {
       }
     }
 
-    // renderer->Start();
+    renderer->Draw();
     // renderer->Clear();
     // renderer->Present();
 

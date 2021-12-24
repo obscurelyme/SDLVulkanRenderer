@@ -7,6 +7,8 @@
 #include <set>
 #include <vector>
 
+int Vulkan::MAX_FRAMES_IN_FLIGHT = 2;
+
 Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window)
     : enableValidationLayers(true), vulkanInstanceInitialized(false),
       windowHandle(window), vulkanAppInfo({}), vulkanInstanceCreateInfo({}),
@@ -27,13 +29,23 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window)
   CreateFramebuffer();
   CreateCommandPool();
   CreateCommandBuffers();
+  CreateSemaphores();
 }
 
 Vulkan::~Vulkan() {
+  vkDeviceWaitIdle(vulkanLogicalDevice);
+
   if (enableValidationLayers) {
     DestroyDebugUtilsMessengerEXT(nullptr);
   }
   vkDestroyCommandPool(vulkanLogicalDevice, commandPool, nullptr);
+  for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    vkDestroySemaphore(vulkanLogicalDevice, renderFinishedSemaphores[i],
+                       nullptr);
+    vkDestroySemaphore(vulkanLogicalDevice, imageAvailableSemaphores[i],
+                       nullptr);
+    vkDestroyFence(vulkanLogicalDevice, inFlightFences[i], nullptr);
+  }
   for (auto framebuffer : swapChainFramebuffers) {
     vkDestroyFramebuffer(vulkanLogicalDevice, framebuffer, nullptr);
   }
@@ -49,6 +61,62 @@ Vulkan::~Vulkan() {
     vkDestroySurfaceKHR(vulkanInstance, vulkanSurface, nullptr);
     vkDestroyInstance(vulkanInstance, nullptr);
   }
+}
+
+void Vulkan::Draw() {
+  vkWaitForFences(vulkanLogicalDevice, 1, &inFlightFences[currentFrame],
+                  VK_TRUE, UINT64_MAX);
+
+  uint32_t imageIndex;
+  vkAcquireNextImageKHR(vulkanLogicalDevice, vulkanSwapChain, UINT64_MAX,
+                        imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE,
+                        &imageIndex);
+
+  if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+    vkWaitForFences(vulkanLogicalDevice, 1, &imagesInFlight[imageIndex],
+                    VK_TRUE, UINT64_MAX);
+  }
+  imagesInFlight[imageIndex] = inFlightFences[currentFrame];
+
+  VkSubmitInfo submitInfo{};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+  VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
+  VkPipelineStageFlags waitStages[] = {
+      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+  submitInfo.waitSemaphoreCount = 1;
+  submitInfo.pWaitSemaphores = waitSemaphores;
+  submitInfo.pWaitDstStageMask = waitStages;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+
+  VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
+  submitInfo.signalSemaphoreCount = 1;
+  submitInfo.pSignalSemaphores = signalSemaphores;
+
+  vkResetFences(vulkanLogicalDevice, 1, &inFlightFences[currentFrame]);
+  VkResult result = vkQueueSubmit(vulkanGraphicsQueue, 1, &submitInfo,
+                                  inFlightFences[currentFrame]);
+  if (result != VK_SUCCESS) {
+    ShowError(
+        "Vulkan Queue Submit",
+        fmt::format("Failed to submit draw command to buffer: [{}]", result));
+  }
+
+  VkPresentInfoKHR presentInfo{};
+  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  presentInfo.waitSemaphoreCount = 1;
+  presentInfo.pWaitSemaphores = signalSemaphores;
+
+  VkSwapchainKHR swapChains[] = {vulkanSwapChain};
+  presentInfo.swapchainCount = 1;
+  presentInfo.pSwapchains = swapChains;
+  presentInfo.pImageIndices = &imageIndex;
+  presentInfo.pResults = nullptr; // Optional
+
+  vkQueuePresentKHR(vulkanPresentQueue, &presentInfo);
+
+  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void Vulkan::InitVulkan() {
@@ -751,6 +819,14 @@ void Vulkan::SetupFixedFunctionsPipeline(
 }
 
 void Vulkan::CreateRenderPass() {
+  VkSubpassDependency dependency{};
+  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  dependency.dstSubpass = 0;
+  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.srcAccessMask = 0;
+  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
   VkAttachmentDescription colorAttachment{};
   colorAttachment.format = swapChainImageFormat;
   colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -779,6 +855,8 @@ void Vulkan::CreateRenderPass() {
   renderPassInfo.pAttachments = &colorAttachment;
   renderPassInfo.subpassCount = 1;
   renderPassInfo.pSubpasses = &subpass;
+  renderPassInfo.dependencyCount = 1;
+  renderPassInfo.pDependencies = &dependency;
 
   VkResult result = vkCreateRenderPass(vulkanLogicalDevice, &renderPassInfo,
                                        nullptr, &renderPass);
@@ -852,8 +930,8 @@ void Vulkan::CreateCommandBuffers() {
   for (size_t i = 0; i < commandBuffers.size(); i++) {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0;                  // Optional
-    beginInfo.pInheritanceInfo = nullptr; // Optional
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT; // Optional
+    beginInfo.pInheritanceInfo = nullptr;                           // Optional
 
     result = vkBeginCommandBuffer(commandBuffers[i], &beginInfo);
 
@@ -888,6 +966,43 @@ void Vulkan::CreateCommandBuffers() {
           "Vulkan Command Buffers",
           fmt::format("Unable to end command buffers.\nVulkan Error Code: [{}]",
                       result));
+    }
+  }
+}
+
+void Vulkan::CreateSemaphores() {
+  imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+  inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+  imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
+
+  VkSemaphoreCreateInfo semaphoreInfo{};
+  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+
+  VkFenceCreateInfo fenceInfo{};
+  fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+  for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+    VkResult imgAvailResult =
+        vkCreateSemaphore(vulkanLogicalDevice, &semaphoreInfo, nullptr,
+                          &imageAvailableSemaphores[i]);
+    VkResult renderFinResult =
+        vkCreateSemaphore(vulkanLogicalDevice, &semaphoreInfo, nullptr,
+                          &renderFinishedSemaphores[i]);
+
+    VkResult fenceResult = vkCreateFence(vulkanLogicalDevice, &fenceInfo,
+                                         nullptr, &inFlightFences[i]);
+
+    if (imgAvailResult != VK_SUCCESS || renderFinResult != VK_SUCCESS ||
+        fenceResult != VK_SUCCESS) {
+      ShowError(
+          "Vulkan Semaphore/Fences",
+          fmt::format("Creationg of Vulkan Semaphores & Fences failed with the "
+                      "following error codes.\nImage Available Semaphore "
+                      "Result: {}\nRender Finished Semaphore Result: {}\nFence "
+                      "Result: [{}]",
+                      imgAvailResult, renderFinResult, fenceResult));
     }
   }
 }

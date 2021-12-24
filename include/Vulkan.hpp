@@ -31,6 +31,8 @@ public:
 
   VkInstance InstanceHandle() const;
 
+  void Draw();
+
   /**
    * @brief VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: Diagnostic message
    *
@@ -121,6 +123,7 @@ private:
   void CreateFramebuffer();
   void CreateCommandPool();
   void CreateCommandBuffers();
+  void CreateSemaphores();
 
   void CreateSurface();
 
@@ -163,6 +166,14 @@ private:
 
   VkCommandPool commandPool;
   std::vector<VkCommandBuffer> commandBuffers;
+
+  std::vector<VkSemaphore> imageAvailableSemaphores;
+  std::vector<VkSemaphore> renderFinishedSemaphores;
+  std::vector<VkFence> inFlightFences;
+  std::vector<VkFence> imagesInFlight;
+  size_t currentFrame = 0;
+
+  static int MAX_FRAMES_IN_FLIGHT;
 };
 
 #endif
