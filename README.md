@@ -19,3 +19,5 @@ You will then have the proper ICD files and dylibs located where they are requir
 Run cmake build using `cmake-tools` within VSCode.
 
 The application should boot up and display a black (or empty on Linux) window with a size 500x500.
+
+![Hello Vulkan Triangle](Hello_Vulkan_Triangle.png)
