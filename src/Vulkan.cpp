@@ -374,10 +374,10 @@ void Vulkan::PickPhysicalDevice() {
   std::vector<VkPhysicalDevice> devices(deviceCount);
   vkEnumeratePhysicalDevices(vulkanInstance, &deviceCount, devices.data());
 
-  // Selects the fist available suitable device
   for (const auto &device : devices) {
     if (IsDeviceSuitable(device)) {
       vulkanPhysicalDevice = device;
+      AddRequiredDeviceExtensionSupport(vulkanPhysicalDevice);
       break;
     }
   }
@@ -406,7 +406,7 @@ bool Vulkan::IsDeviceSuitable(VkPhysicalDevice device) {
   }
 
   bool result =
-      indices.IsComplete() && extensionsSupported && swapChainAdequate;
+      indices.IsComplete() && extensionsSupported && swapChainAdequate && deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
 
   if (result) {
     fmt::print("Using device: {}\n", deviceProperties.deviceName);
@@ -469,7 +469,7 @@ void Vulkan::CreateLogicalDevice() {
   // VkPhysicalDeviceFeatures deviceFeatures{};
   // REQUIRED_VULKAN_DEVICE_EXTENSIONS.push_back(
   //     VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
-  deviceExtensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
+  // deviceExtensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
 
   VkDeviceCreateInfo logicalDeviceCreateInfo{};
   logicalDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -525,6 +525,12 @@ bool Vulkan::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
   vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
                                        availableExtensions.data());
 
+  std::cout << "=== Physical Device Extensions ==============" << std::endl;
+  for (auto availExt : availableExtensions) {
+    std::cout << availExt.extensionName << std::endl;
+  }
+  std::cout << "=============================================" << std::endl;
+
   std::set<std::string> requiredExtensions(deviceExtensions.begin(),
                                            deviceExtensions.end());
 
@@ -533,6 +539,25 @@ bool Vulkan::CheckDeviceExtensionSupport(VkPhysicalDevice device) {
   }
 
   return requiredExtensions.empty();
+}
+
+void Vulkan::AddRequiredDeviceExtensionSupport(VkPhysicalDevice device) {
+  uint32_t extensionCount;
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+                                       nullptr);
+
+  std::vector<VkExtensionProperties> availableExtensions(extensionCount);
+  vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount,
+                                       availableExtensions.data());
+  for (auto availExt : availableExtensions) {
+    if (availExt.extensionName == VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME) {
+      /**
+       * If a physical device allows for this extension, then it MUST be enabled.
+       * @see https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_portability_subset.html
+       */
+      deviceExtensions.push_back(availExt.extensionName);
+    }
+  }
 }
 
 SwapChainSupportDetails Vulkan::QuerySwapChainSupport(VkPhysicalDevice device) {
@@ -576,13 +601,19 @@ VkSurfaceFormatKHR Vulkan::ChooseSwapSurfaceFormat(
 
 VkPresentModeKHR Vulkan::ChooseSwapPresentMode(
     const std::vector<VkPresentModeKHR> &availablePresentModes) {
+      std::cout << "=== Checking available present modes ============" << std::endl;
   for (const auto &availablePresentMode : availablePresentModes) {
+    std::cout << fmt::format("Present Mode: {}", availablePresentMode) << std::endl;
     if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+      std::cout << "GPU will use Triple Buffering" << std::endl;
       return availablePresentMode; // Leverage triple buffering if we can.
     }
   }
 
+  std::cout << "======================================================" << std::endl;
+
   // else, fallback to v-sync
+  std::cout << "GPU will fallback to Vertical Sync" << std::endl;
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 

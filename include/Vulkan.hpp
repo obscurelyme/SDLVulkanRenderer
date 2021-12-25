@@ -86,6 +86,11 @@ private:
   QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
   void CreateLogicalDevice();
   bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+  /**
+   * @brief After choosing a physical device, query what extensions are required
+   * by Vulkan in order to create a logical device later.
+   */
+  void AddRequiredDeviceExtensionSupport(VkPhysicalDevice device);
   SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
   VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
       const std::vector<VkSurfaceFormatKHR> &availableFormats);

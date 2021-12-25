@@ -72,6 +72,12 @@
     "utility": "cpp",
     "variant": "cpp",
     "vector": "cpp",
-    "map": "cpp"
+    "map": "cpp",
+    "*.tcc": "cpp",
+    "numbers": "cpp",
+    "memory_resource": "cpp",
+    "numeric": "cpp",
+    "random": "cpp",
+    "cinttypes": "cpp"
   }
 }
