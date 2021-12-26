@@ -9,21 +9,8 @@
 #include <vector>
 #include <vulkan/vulkan.h>
 #include "VulkanPhysicalDevice.hpp"
-
-// struct QueueFamilyIndices {
-//   std::optional<uint32_t> graphicsFamily;
-//   std::optional<uint32_t> presentFamily;
-
-//   bool IsComplete() {
-//     return graphicsFamily.has_value() && presentFamily.has_value();
-//   }
-// };
-
-struct SwapChainSupportDetails {
-  VkSurfaceCapabilitiesKHR capabilities;
-  std::vector<VkSurfaceFormatKHR> formats;
-  std::vector<VkPresentModeKHR> presentModes;
-};
+#include "VulkanLogicalDevice.hpp"
+#include "VulkanSwapchain.hpp"
 
 class Vulkan {
 public:
@@ -32,11 +19,8 @@ public:
 
   VkInstance InstanceHandle() const;
   // VkPhysicalDevice PhysicalDeviceHandle() const { return physicalDevice.Device; };
-  VkDevice LogicalDeviceHandle() const { return vulkanLogicalDevice; };
   // uint32_t GraphicsQueueFamily() { return FindQueueFamilies(vulkanPhysicalDevice).graphicsFamily.value(); };
   // uint32_t PresentQueueFamily() { return FindQueueFamilies(vulkanPhysicalDevice).presentFamily.value(); };
-  VkQueue GraphicsQueue() const { return vulkanGraphicsQueue; };
-  VkQueue PresentQueue() const { return vulkanPresentQueue; };
   VkPipeline* PipelineCache() const { return VK_NULL_HANDLE; };
   // DescriptorPool() const;
 
@@ -98,38 +82,7 @@ private:
    * by Vulkan in order to create a logical device later.
    */
   void AddRequiredDeviceExtensionSupport(VkPhysicalDevice device);
-  VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
-      const std::vector<VkSurfaceFormatKHR> &availableFormats);
-
-  /**
-   * @brief VK_PRESENT_MODE_IMMEDIATE_KHR: Images submitted by your application
-   * are transferred to the screen right away, which may result in tearing.
-   * VK_PRESENT_MODE_FIFO_KHR: The swap chain is a queue where the display takes
-   * an image from the front of the queue when the display is refreshed and the
-   * program inserts rendered images at the back of the queue. If the queue is
-   * full then the program has to wait. This is most similar to vertical sync as
-   * found in modern games. The moment that the display is refreshed is known as
-   * "vertical blank". VK_PRESENT_MODE_FIFO_RELAXED_KHR: This mode only differs
-   * from the previous one if the application is late and the queue was empty at
-   * the last vertical blank. Instead of waiting for the next vertical blank,
-   * the image is transferred right away when it finally arrives. This may
-   * result in visible tearing. VK_PRESENT_MODE_MAILBOX_KHR: This is another
-   * variation of the second mode. Instead of blocking the application when the
-   * queue is full, the images that are already queued are simply replaced with
-   * the newer ones. This mode can be used to render frames as fast as possible
-   * while still avoiding tearing, resulting in fewer latency issues than
-   * standard vertical sync. This is commonly known as "triple buffering",
-   * although the existence of three buffers alone does not necessarily mean
-   * that the framerate is unlocked.
-   *
-   * @param availablePresentModes
-   * @return VkPresentModeKHR
-   */
-  VkPresentModeKHR ChooseSwapPresentMode(
-      const std::vector<VkPresentModeKHR> &availablePresentModes);
-  VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR &capabilities);
   void CreateSwapChain();
-  void CreateImageViews();
   void CreateGraphicsPipeline();
   void
   SetupFixedFunctionsPipeline(VkPipelineShaderStageCreateInfo shaderStages[]);
@@ -160,17 +113,6 @@ private:
 
   VkDebugUtilsMessengerEXT debugMessenger;
   VkSurfaceKHR vulkanSurface;
-  // VkPhysicalDevice vulkanPhysicalDevice;
-  VkDevice vulkanLogicalDevice;
-  VkQueue vulkanGraphicsQueue;
-  VkQueue vulkanPresentQueue;
-  VkSwapchainKHR vulkanSwapChain;
-
-  std::vector<VkImage> swapChainImages;
-  VkFormat swapChainImageFormat;
-  VkExtent2D swapChainExtent;
-
-  std::vector<VkImageView> swapChainImageViews;
 
   VkRenderPass renderPass;
   VkPipelineLayout pipelineLayout;
@@ -191,6 +133,8 @@ private:
   bool framebufferResized;
 
   VulkanPhysicalDevice physicalDevice{nullptr};
+  VulkanLogicalDevice logicalDevice;
+  VulkanSwapchain swapChain;
 };
 
 #endif
