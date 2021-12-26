@@ -8,15 +8,16 @@
 #include <string>
 #include <vector>
 #include <vulkan/vulkan.h>
+#include "VulkanPhysicalDevice.hpp"
 
-struct QueueFamilyIndices {
-  std::optional<uint32_t> graphicsFamily;
-  std::optional<uint32_t> presentFamily;
+// struct QueueFamilyIndices {
+//   std::optional<uint32_t> graphicsFamily;
+//   std::optional<uint32_t> presentFamily;
 
-  bool IsComplete() {
-    return graphicsFamily.has_value() && presentFamily.has_value();
-  }
-};
+//   bool IsComplete() {
+//     return graphicsFamily.has_value() && presentFamily.has_value();
+//   }
+// };
 
 struct SwapChainSupportDetails {
   VkSurfaceCapabilitiesKHR capabilities;
@@ -30,6 +31,14 @@ public:
   ~Vulkan();
 
   VkInstance InstanceHandle() const;
+  // VkPhysicalDevice PhysicalDeviceHandle() const { return physicalDevice.Device; };
+  VkDevice LogicalDeviceHandle() const { return vulkanLogicalDevice; };
+  // uint32_t GraphicsQueueFamily() { return FindQueueFamilies(vulkanPhysicalDevice).graphicsFamily.value(); };
+  // uint32_t PresentQueueFamily() { return FindQueueFamilies(vulkanPhysicalDevice).presentFamily.value(); };
+  VkQueue GraphicsQueue() const { return vulkanGraphicsQueue; };
+  VkQueue PresentQueue() const { return vulkanPresentQueue; };
+  VkPipeline* PipelineCache() const { return VK_NULL_HANDLE; };
+  // DescriptorPool() const;
 
   void Draw();
   void RecreateSwapChain();
@@ -82,16 +91,13 @@ private:
       VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 
   void PickPhysicalDevice();
-  bool IsDeviceSuitable(VkPhysicalDevice device);
-  QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
+  bool IsDeviceSuitable(VulkanPhysicalDevice& device);
   void CreateLogicalDevice();
-  bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
   /**
    * @brief After choosing a physical device, query what extensions are required
    * by Vulkan in order to create a logical device later.
    */
   void AddRequiredDeviceExtensionSupport(VkPhysicalDevice device);
-  SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
   VkSurfaceFormatKHR ChooseSwapSurfaceFormat(
       const std::vector<VkSurfaceFormatKHR> &availableFormats);
 
@@ -154,7 +160,7 @@ private:
 
   VkDebugUtilsMessengerEXT debugMessenger;
   VkSurfaceKHR vulkanSurface;
-  VkPhysicalDevice vulkanPhysicalDevice;
+  // VkPhysicalDevice vulkanPhysicalDevice;
   VkDevice vulkanLogicalDevice;
   VkQueue vulkanGraphicsQueue;
   VkQueue vulkanPresentQueue;
@@ -183,6 +189,8 @@ private:
 
   static int MAX_FRAMES_IN_FLIGHT;
   bool framebufferResized;
+
+  VulkanPhysicalDevice physicalDevice{nullptr};
 };
 
 #endif

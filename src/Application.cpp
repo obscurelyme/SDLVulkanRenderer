@@ -14,6 +14,7 @@ Application::Application(const std::string &name, int windowWidth,
                             SDL_WINDOWPOS_UNDEFINED, windowWidth, windowHeight,
                             SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
   renderer = new Vulkan(appName, window);
+
 }
 
 Application::~Application() {
