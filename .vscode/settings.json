@@ -79,5 +79,17 @@
     "numeric": "cpp",
     "random": "cpp",
     "cinttypes": "cpp"
-  }
+  },
+  "[cpp]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "xaver.clang-format"
+  },
+  "clang-tidy.lintOnSave": true,
+  "clang-tidy.checks": ["clang-analyzer-*", "modernize-*", "-modernize-use-trailing-return-type", "-modernize-use-nodiscard"],
+  "clang-tidy.compilerArgs": [
+    "-I/usr/include",
+    "-Iinclude",
+    "-std=c++20"
+  ],
+  "clang-tidy.blacklist": ["build/vcpkg_installed/*"],
 }
