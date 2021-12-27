@@ -2,20 +2,24 @@
 #define _coffeemaker_vulkan_renderpass_hpp
 
 #include <vulkan/vulkan.h>
-#include "VulkanSwapchain.hpp"
-#include "VulkanLogicalDevice.hpp"
-#include "SimpleMessageBox.hpp"
+
 #include <vector>
+
+#include "SimpleMessageBox.hpp"
+#include "VulkanLogicalDevice.hpp"
+#include "VulkanSwapchain.hpp"
 
 class VulkanRenderPass {
   public:
   VulkanRenderPass() :
-    _logicalDevice(nullptr),
-    _swapChain(nullptr),
-    _renderPassInfo({}),
-    _colorAttachmentDescription({}),
-    _colorAttachmentReference({}),
-    _subpassDependencies({}) {
+      Handle(VK_NULL_HANDLE),
+      _logicalDevice(nullptr),
+      _swapChain(nullptr),
+      _renderPassInfo({}),
+      _subpassDescription({}),
+      _colorAttachmentDescription({}),
+      _colorAttachmentReference({}),
+      _subpassDependencies({}) {
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
@@ -25,9 +29,7 @@ class VulkanRenderPass {
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   }
 
-  ~VulkanRenderPass() {
-    DestroyHandle();
-  }
+  ~VulkanRenderPass() { DestroyHandle(); }
 
   void DestroyHandle() {
     if (_logicalDevice->Handle != nullptr && Handle != nullptr) {
@@ -36,35 +38,23 @@ class VulkanRenderPass {
     }
   }
 
-  VulkanRenderPass& SetSwapchain(VulkanSwapchain* swapchain) { 
-    _swapChain = swapchain;
-    return *this; 
-  }
+  void SetSwapchain(VulkanSwapchain* swapchain) { _swapChain = swapchain; }
 
+  void SetLogicalDevice(VulkanLogicalDevice* logicalDevice) { _logicalDevice = logicalDevice; }
 
-  VulkanRenderPass& SetLogicalDevice(VulkanLogicalDevice* logicalDevice) { 
-    _logicalDevice = logicalDevice;
-    return *this; 
-  }
-
-  VulkanRenderPass& Build() {
+  void Build() {
     CreateSubpassDependency();
     CreateColorAttachmentDes();
     CreateColorAttachmentRef();
     CreateSubPassDes();
     CreateRenderPassInfo();
     CreateRenderPass();
-    return *this;
-  }
-
-  VulkanRenderPass& Value() {
-    return *this;
   }
 
   VkRenderPass Handle;
 
   private:
-  void CreateSubpassDependency() { 
+  void CreateSubpassDependency() {
     VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
@@ -73,7 +63,7 @@ class VulkanRenderPass {
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-    _subpassDependencies.emplace_back(dependency);
+    _subpassDependencies.push_back(dependency);
   }
 
   void CreateColorAttachmentDes() {
@@ -112,14 +102,10 @@ class VulkanRenderPass {
   }
 
   void CreateRenderPass() {
-    VkResult result = vkCreateRenderPass(_logicalDevice->Handle, &_renderPassInfo,
-                                       nullptr, &Handle);
+    VkResult result = vkCreateRenderPass(_logicalDevice->Handle, &_renderPassInfo, nullptr, &Handle);
     if (result != VK_SUCCESS) {
-      SimpleMessageBox::ShowError(
-          "Vulkan Render Pass",
-          fmt::format(
-              "Unable to create Vulkan Render Pass.\nVulkan Error Code: [{}]",
-              result));
+      SimpleMessageBox::ShowError("Vulkan Render Pass",
+                                  fmt::format("Unable to create Vulkan Render Pass.\nVulkan Error Code: [{}]", result));
     }
   }
 

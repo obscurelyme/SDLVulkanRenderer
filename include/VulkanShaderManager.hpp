@@ -3,14 +3,15 @@
 
 #include <SDL2/SDL.h>
 #include <fmt/core.h>
+#include <vulkan/vulkan.h>
+
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <vector>
-#include <vulkan/vulkan.h>
 
 class VulkanShaderManager {
-public:
+  public:
   /**
    * @brief Reads a compiled shader binary for Vulkan to use later.
    *
@@ -22,8 +23,7 @@ public:
     std::ifstream file{fullFilePath, std::ios::ate | std::ios::binary};
 
     if (!file.is_open()) {
-      std::cerr << fmt::format("Could not open shader binary {}", filename)
-                << std::endl;
+      std::cerr << fmt::format("Could not open shader binary {}", filename) << std::endl;
       exit(2);
     }
 
@@ -43,19 +43,21 @@ public:
     if (elem != shaderByteCodes.end()) {
       return elem->second;
     } else {
-      std::cerr
-          << fmt::format(
-                 "Could not use shader binary \"{}\" because it was not "
-                 "loaded.\n"
-                 "Please ReadShaderFile first before calling UserShaderFile",
-                 filename)
-          << std::endl;
+      std::cerr << fmt::format(
+                       "Could not use shader binary \"{}\" because it was not "
+                       "loaded.\n"
+                       "Please ReadShaderFile first before calling UserShaderFile",
+                       filename)
+                << std::endl;
       exit(3);
     }
   }
 
-  static VkShaderModule CreateShaderModule(VkDevice logicalDevice,
-                                           const std::vector<char> &code) {
+  static VkShaderModule ShaderModule(const std::string &filename) {
+    return CreateShaderModule(logicalDevice, ReadShaderFile(filename));
+  }
+
+  static VkShaderModule CreateShaderModule(VkDevice device, const std::vector<char> &code) {
     VkShaderModuleCreateInfo createInfo{};
 
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -63,8 +65,7 @@ public:
     createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(logicalDevice, &createInfo, nullptr,
-                             &shaderModule) != VK_SUCCESS) {
+    if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
       std::cerr << fmt::format("Failed to create shader module.") << std::endl;
       exit(4);
     }
@@ -72,12 +73,14 @@ public:
     return shaderModule;
   }
 
-  static void CleanupShaderModule(VkDevice logicalDevice,
-                                  VkShaderModule shaderModule) {
+  static void CleanupShaderModule(VkDevice logicalDevice, VkShaderModule shaderModule) {
     vkDestroyShaderModule(logicalDevice, shaderModule, nullptr);
   }
 
-private:
+  static void AssignLogicalDevice(VkDevice device) { logicalDevice = device; }
+
+  private:
+  static VkDevice logicalDevice;
   static std::map<std::string, std::vector<char>> shaderByteCodes;
 };
 

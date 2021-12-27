@@ -1,14 +1,16 @@
 #ifndef _coffeemaker_vulkan_swapchain_hpp
 #define _coffeemaker_vulkan_swapchain_hpp
 
-#include <vector>
-#include <vulkan/vulkan.h>
-#include "VulkanPhysicalDevice.hpp"
-#include "VulkanLogicalDevice.hpp"
 #include <SDL2/SDL.h>
-#include <algorithm>
-#include "SimpleMessageBox.hpp"
 #include <fmt/core.h>
+#include <vulkan/vulkan.h>
+
+#include <algorithm>
+#include <vector>
+
+#include "SimpleMessageBox.hpp"
+#include "VulkanLogicalDevice.hpp"
+#include "VulkanPhysicalDevice.hpp"
 
 class VulkanSwapchain {
   public:
@@ -30,16 +32,12 @@ class VulkanSwapchain {
 
   void SetWindow(SDL_Window* w) { _window = w; }
 
-  void SetPhysicalDevice(VulkanPhysicalDevice* device) { 
-    _physicalDevice = device;
-  }
+  void SetPhysicalDevice(VulkanPhysicalDevice* device) { _physicalDevice = device; }
 
-  void SetLogicalDevice(VulkanLogicalDevice* device) { 
-    _logicalDevice = device;
-  }
+  void SetLogicalDevice(VulkanLogicalDevice* device) { _logicalDevice = device; }
 
   void ChooseSwapSurfaceFormat() {
-    for (const auto &availableFormat : _physicalDevice->SwapChainSupport.formats) {
+    for (const auto& availableFormat : _physicalDevice->SwapChainSupport.formats) {
       if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
           availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
         _surfaceFormat = availableFormat;
@@ -52,7 +50,7 @@ class VulkanSwapchain {
   }
 
   void ChoosePresentationMode() {
-    for (const auto &availablePresentMode : _physicalDevice->SwapChainSupport.presentModes) {
+    for (const auto& availablePresentMode : _physicalDevice->SwapChainSupport.presentModes) {
       if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
         // Leverage triple buffering if we can.
         _presentMode = availablePresentMode;
@@ -72,15 +70,12 @@ class VulkanSwapchain {
     } else {
       int width, height;
       SDL_Vulkan_GetDrawableSize(_window, &width, &height);
-      _extent = {.width = static_cast<uint32_t>(width),
-                                 .height = static_cast<uint32_t>(height)};
+      _extent = {.width = static_cast<uint32_t>(width), .height = static_cast<uint32_t>(height)};
 
-      _extent.width =
-          std::clamp(_extent.width, details.capabilities.minImageExtent.width,
-                    details.capabilities.maxImageExtent.width);
-      _extent.height =
-          std::clamp(_extent.height, details.capabilities.minImageExtent.height,
-                    details.capabilities.maxImageExtent.height);
+      _extent.width = std::clamp(_extent.width, details.capabilities.minImageExtent.width,
+                                 details.capabilities.maxImageExtent.width);
+      _extent.height = std::clamp(_extent.height, details.capabilities.minImageExtent.height,
+                                  details.capabilities.maxImageExtent.height);
     }
   }
 
@@ -89,8 +84,7 @@ class VulkanSwapchain {
     VulkanQueueFamilyIndices indices = _physicalDevice->QueueFamilies;
 
     _imageCount = details.capabilities.minImageCount + 1;
-    if (details.capabilities.maxImageCount > 0 &&
-      _imageCount > details.capabilities.maxImageCount) {
+    if (details.capabilities.maxImageCount > 0 && _imageCount > details.capabilities.maxImageCount) {
       _imageCount = details.capabilities.maxImageCount;
     }
 
@@ -104,17 +98,15 @@ class VulkanSwapchain {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    
-    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(),
-                                    indices.presentFamily.value()};
+    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
     if (indices.graphicsFamily != indices.presentFamily) {
       createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
       createInfo.queueFamilyIndexCount = 2;
       createInfo.pQueueFamilyIndices = queueFamilyIndices;
     } else {
       createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-      createInfo.queueFamilyIndexCount = 0;     // Optional
-      createInfo.pQueueFamilyIndices = nullptr; // Optional
+      createInfo.queueFamilyIndexCount = 0;      // Optional
+      createInfo.pQueueFamilyIndices = nullptr;  // Optional
     }
     createInfo.preTransform = details.capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -122,20 +114,16 @@ class VulkanSwapchain {
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-      VkResult result = vkCreateSwapchainKHR(_logicalDevice->Handle, &createInfo,
-                                         nullptr, &Handle);
+    VkResult result = vkCreateSwapchainKHR(_logicalDevice->Handle, &createInfo, nullptr, &Handle);
     if (result != VK_SUCCESS) {
-      SimpleMessageBox::ShowError("Vulkan Swap Chain",
-                fmt::format("Unable to create the Vulkan Swap Chain.\nVulkan "
-                            "Error Code: [{}]",
-                            result));
+      SimpleMessageBox::ShowError("Vulkan Swap Chain", fmt::format("Unable to create the Vulkan Swap Chain.\nVulkan "
+                                                                   "Error Code: [{}]",
+                                                                   result));
     }
 
-    vkGetSwapchainImagesKHR(_logicalDevice->Handle, Handle, &_imageCount,
-                            nullptr);
+    vkGetSwapchainImagesKHR(_logicalDevice->Handle, Handle, &_imageCount, nullptr);
     _swapChainImages.resize(_imageCount);
-    vkGetSwapchainImagesKHR(_logicalDevice->Handle, Handle, &_imageCount,
-                            _swapChainImages.data());
+    vkGetSwapchainImagesKHR(_logicalDevice->Handle, Handle, &_imageCount, _swapChainImages.data());
   }
 
   void CreateImageViews() {
@@ -160,40 +148,25 @@ class VulkanSwapchain {
       createInfo.subresourceRange.baseArrayLayer = 0;
       createInfo.subresourceRange.layerCount = 1;
 
-      if (vkCreateImageView(_logicalDevice->Handle, &createInfo, nullptr,
-                            &_swapChainImageViews[i]) != VK_SUCCESS) {
+      if (vkCreateImageView(_logicalDevice->Handle, &createInfo, nullptr, &_swapChainImageViews[i]) != VK_SUCCESS) {
         SimpleMessageBox::ShowError("Vulkan Image View", "Unable to create Vulkan Image View");
       }
     }
   }
 
-  VkSurfaceFormatKHR GetSurfaceFormat() {
-    return _surfaceFormat;
-  }
+  VkSurfaceFormatKHR GetSurfaceFormat() { return _surfaceFormat; }
 
-  VkExtent2D GetSurfaceExtent() {
-    return _extent;
-  }
+  VkExtent2D GetSurfaceExtent() { return _extent; }
 
-  const std::vector<VkImage>& GetImages() {
-    return _swapChainImages;
-  }
+  const std::vector<VkImage>& GetImages() { return _swapChainImages; }
 
-  std::vector<VkImageView> GetImageViews() {
-    return _swapChainImageViews;
-  }
+  std::vector<VkImageView> GetImageViews() { return _swapChainImageViews; }
 
-  VkPresentModeKHR GetPresentMode() {
-    return _presentMode;
-  }
+  VkPresentModeKHR GetPresentMode() { return _presentMode; }
 
-  uint32_t GetImageCount() {
-    return _imageCount;
-  }
+  uint32_t GetImageCount() { return _imageCount; }
 
-  VkExtent2D GetExtent() {
-    return _extent;
-  }
+  VkExtent2D GetExtent() { return _extent; }
 
   VkSwapchainKHR Handle;
 

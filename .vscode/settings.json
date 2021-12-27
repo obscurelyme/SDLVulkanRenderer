@@ -79,5 +79,9 @@
     "numeric": "cpp",
     "random": "cpp",
     "cinttypes": "cpp"
+  },
+  "[cpp]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "xaver.clang-format"
   }
 }

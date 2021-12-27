@@ -3,28 +3,33 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
+#include <vulkan/vulkan.h>
+
 #include <iostream>
 #include <optional>
 #include <string>
 #include <vector>
-#include <vulkan/vulkan.h>
-#include "VulkanPhysicalDevice.hpp"
+
+#include "Triangle.hpp"
+#include "VulkanCommands.hpp"
+#include "VulkanFramebuffer.hpp"
 #include "VulkanLogicalDevice.hpp"
-#include "VulkanSwapchain.hpp"
-// #include "VulkanCommands.hpp"
+#include "VulkanPhysicalDevice.hpp"
 #include "VulkanRenderPass.hpp"
+#include "VulkanSwapchain.hpp"
+#include "VulkanSync.hpp"
 
 class Vulkan {
-public:
+  public:
+  friend class VulkanShaderManager;
+
   explicit Vulkan(const std::string &applicationName, SDL_Window *window);
   ~Vulkan();
 
   VkInstance InstanceHandle() const;
-  // VkPhysicalDevice PhysicalDeviceHandle() const { return physicalDevice.Device; };
-  // uint32_t GraphicsQueueFamily() { return FindQueueFamilies(vulkanPhysicalDevice).graphicsFamily.value(); };
-  // uint32_t PresentQueueFamily() { return FindQueueFamilies(vulkanPhysicalDevice).presentFamily.value(); };
-  VkPipeline* PipelineCache() const { return VK_NULL_HANDLE; };
-  // DescriptorPool() const;
+  VkDevice LogicalDevice() const { return logicalDevice.Handle; }
+
+  void Draw2();
 
   void Draw();
   void RecreateSwapChain();
@@ -48,36 +53,31 @@ public:
    * @param pUserData
    * @return VKAPI_ATTR
    */
-  static VKAPI_ATTR VkBool32 VKAPI_CALL
-  debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                VkDebugUtilsMessageTypeFlagsEXT messageType,
-                const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                void *pUserData) {
-
+  static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                      VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                                      void *pUserData) {
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-      std::cerr << "[KHS_Validation_Layer]: " << pCallbackData->pMessage
-                << std::endl;
+      std::cerr << "[KHS_Validation_Layer]: " << pCallbackData->pMessage << std::endl;
     }
 
     return VK_FALSE;
   }
 
-private:
+  private:
   void CleanupSwapChain();
   void InitVulkan();
   bool CheckValidationLayerSupport();
   void GetRequiredExtensions();
   void SetupDebugMessenger();
   void SetupValidationLayers();
-  VkResult CreateDebugUtilsMessengerEXT(
-      const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-      const VkAllocationCallbacks *pAllocator);
+  VkResult CreateDebugUtilsMessengerEXT(const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+                                        const VkAllocationCallbacks *pAllocator);
   void DestroyDebugUtilsMessengerEXT(const VkAllocationCallbacks *pAllocator);
-  void PopulateDebugMessengerCreateInfo(
-      VkDebugUtilsMessengerCreateInfoEXT &createInfo);
+  void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 
   void PickPhysicalDevice();
-  bool IsDeviceSuitable(VulkanPhysicalDevice& device);
+  bool IsDeviceSuitable(VulkanPhysicalDevice &device);
   void CreateLogicalDevice();
   /**
    * @brief After choosing a physical device, query what extensions are required
@@ -86,12 +86,12 @@ private:
   void AddRequiredDeviceExtensionSupport(VkPhysicalDevice device);
   void CreateSwapChain();
   void CreateGraphicsPipeline();
-  void
-  SetupFixedFunctionsPipeline(VkPipelineShaderStageCreateInfo shaderStages[]);
+  void SetupFixedFunctionsPipeline(VkPipelineShaderStageCreateInfo shaderStages[]);
   void CreateRenderPass();
   void CreateFramebuffer();
   void CreateCommandPool();
   void CreateCommandBuffers();
+  void CreateCommands();
   void CreateSemaphores();
 
   void CreateSurface();
@@ -110,16 +110,13 @@ private:
   uint32_t VULKAN_LAYERS_COUNT;
   std::vector<const char *> VULKAN_LAYERS{};
   std::vector<const char *> REQUIRED_VULKAN_DEVICE_EXTENSIONS{};
-  std::vector<const char *> deviceExtensions = {
-      VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+  std::vector<const char *> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
   VkDebugUtilsMessengerEXT debugMessenger;
   VkSurfaceKHR vulkanSurface;
 
   VkPipelineLayout pipelineLayout;
   VkPipeline graphicsPipeline;
-
-  std::vector<VkFramebuffer> swapChainFramebuffers;
 
   VkCommandPool commandPool;
   std::vector<VkCommandBuffer> commandBuffers;
@@ -136,8 +133,13 @@ private:
   VulkanPhysicalDevice physicalDevice{nullptr};
   VulkanLogicalDevice logicalDevice;
   VulkanSwapchain swapChain;
-  // VulkanCommands commands;
+  VulkanCommands commands;
   VulkanRenderPass renderPass;
+  VulkanFramebuffer framebuffer;
+  VulkanSync syncUtils;
+  int framecount;
+
+  Triangle *triangle;
 };
 
 #endif
