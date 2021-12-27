@@ -8,6 +8,14 @@ Pull down this repository and open VSCode
 
 Run cmake configure using `cmake-tools` within VSCode
 
+#### Compiling Shaders
+
+Vulkan shaders require to be compiled down to bytecode before they can be used with a Vulkan application.
+One such compiler is Google's `glslc` tool, which should come bundled with the Vulkan SDK. If you do not have it installed then you will need to install it on your environment. Please take a look on the internet how to install it
+on your system.
+
+To compile the shaders, simply run `bash ./scripts/compile-shaders.sh` if on *nix systems and `./scripts/compile-shaders.bat` if on Windows. You will then need to copy over the .spv binaries into the directory with the HelloVulkan executable. On Linux this will simply just be `./build` and on Windows it will be `./build/Release` or `./build/Debug` depending on your cmake configuration. On MacOS this step is a little more tricky because of the nature of .app bundles therefore a cmake install script has been made to simplify the installation of shaders on MacOS. More info on how to install them below...
+
 If on Apple, you will need to run the following command to install Resources and Frameworks to the App Bundle
 
 ```sh
