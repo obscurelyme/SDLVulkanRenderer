@@ -454,12 +454,13 @@ void Vulkan::AddRequiredDeviceExtensionSupport(VkPhysicalDevice device) {
   std::vector<VkExtensionProperties> availableExtensions(extensionCount);
   vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, availableExtensions.data());
   for (auto availExt : availableExtensions) {
-    if (availExt.extensionName == VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME) {
+    if (strcmp(availExt.extensionName, VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME) == 0) {
+      // if (availExt.extensionName == VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME) {
       /**
        * If a physical device allows for this extension, then it MUST be enabled.
        * @see https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VK_KHR_portability_subset.html
        */
-      deviceExtensions.push_back(availExt.extensionName);
+      deviceExtensions.push_back(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME);
     }
   }
 }
