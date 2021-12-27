@@ -11,6 +11,8 @@
 #include "VulkanPhysicalDevice.hpp"
 #include "VulkanLogicalDevice.hpp"
 #include "VulkanSwapchain.hpp"
+// #include "VulkanCommands.hpp"
+#include "VulkanRenderPass.hpp"
 
 class Vulkan {
 public:
@@ -114,7 +116,6 @@ private:
   VkDebugUtilsMessengerEXT debugMessenger;
   VkSurfaceKHR vulkanSurface;
 
-  VkRenderPass renderPass;
   VkPipelineLayout pipelineLayout;
   VkPipeline graphicsPipeline;
 
@@ -135,6 +136,8 @@ private:
   VulkanPhysicalDevice physicalDevice{nullptr};
   VulkanLogicalDevice logicalDevice;
   VulkanSwapchain swapChain;
+  // VulkanCommands commands;
+  VulkanRenderPass renderPass;
 };
 
 #endif

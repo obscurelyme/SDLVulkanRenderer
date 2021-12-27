@@ -63,7 +63,7 @@ void Vulkan::CleanupSwapChain() {
                        commandBuffers.data());
   vkDestroyPipeline(logicalDevice.Handle, graphicsPipeline, nullptr);
   vkDestroyPipelineLayout(logicalDevice.Handle, pipelineLayout, nullptr);
-  vkDestroyRenderPass(logicalDevice.Handle, renderPass, nullptr);
+  renderPass.DestroyHandle();
   swapChain.DestroyHandle();
 }
 
@@ -599,7 +599,7 @@ void Vulkan::SetupFixedFunctionsPipeline(
   pipelineInfo.pColorBlendState = &colorBlending;
   pipelineInfo.pDynamicState = nullptr; // Optional
   pipelineInfo.layout = pipelineLayout;
-  pipelineInfo.renderPass = renderPass;
+  pipelineInfo.renderPass = renderPass.Handle;
   pipelineInfo.subpass = 0;
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
   pipelineInfo.basePipelineIndex = -1;              // Optional
@@ -615,54 +615,58 @@ void Vulkan::SetupFixedFunctionsPipeline(
 }
 
 void Vulkan::CreateRenderPass() {
-  VkSubpassDependency dependency{};
-  dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-  dependency.dstSubpass = 0;
-  dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.srcAccessMask = 0;
-  dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  renderPass.SetLogicalDevice(&logicalDevice);
+  renderPass.SetSwapchain(&swapChain);
+  renderPass.Build();
 
-  VkAttachmentDescription colorAttachment{};
-  colorAttachment.format = swapChain.GetSurfaceFormat().format;
-  colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  // VkSubpassDependency dependency{};
+  // dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+  // dependency.dstSubpass = 0;
+  // dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  // dependency.srcAccessMask = 0;
+  // dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  // dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-  colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-  colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  // VkAttachmentDescription colorAttachment{};
+  // colorAttachment.format = swapChain.GetSurfaceFormat().format;
+  // colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 
-  colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  // colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  // colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-  colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  // colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  // colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 
-  VkAttachmentReference colorAttachmentRef{};
-  colorAttachmentRef.attachment = 0;
-  colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  // colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  // colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-  VkSubpassDescription subpass{};
-  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  subpass.colorAttachmentCount = 1;
-  subpass.pColorAttachments = &colorAttachmentRef;
+  // VkAttachmentReference colorAttachmentRef{};
+  // colorAttachmentRef.attachment = 0;
+  // colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-  VkRenderPassCreateInfo renderPassInfo{};
-  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  renderPassInfo.attachmentCount = 1;
-  renderPassInfo.pAttachments = &colorAttachment;
-  renderPassInfo.subpassCount = 1;
-  renderPassInfo.pSubpasses = &subpass;
-  renderPassInfo.dependencyCount = 1;
-  renderPassInfo.pDependencies = &dependency;
+  // VkSubpassDescription subpass{};
+  // subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  // subpass.colorAttachmentCount = 1;
+  // subpass.pColorAttachments = &colorAttachmentRef;
 
-  VkResult result = vkCreateRenderPass(logicalDevice.Handle, &renderPassInfo,
-                                       nullptr, &renderPass);
-  if (result != VK_SUCCESS) {
-    ShowError(
-        "Vulkan Render Pass",
-        fmt::format(
-            "Unable to create Vulkan Render Pass.\nVulkan Error Code: [{}]",
-            result));
-  }
+  // VkRenderPassCreateInfo renderPassInfo{};
+  // renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+  // renderPassInfo.attachmentCount = 1;
+  // renderPassInfo.pAttachments = &colorAttachment;
+  // renderPassInfo.subpassCount = 1;
+  // renderPassInfo.pSubpasses = &subpass;
+  // renderPassInfo.dependencyCount = 1;
+  // renderPassInfo.pDependencies = &dependency;
+
+  // VkResult result = vkCreateRenderPass(logicalDevice.Handle, &renderPassInfo,
+  //                                      nullptr, &renderPass);
+  // if (result != VK_SUCCESS) {
+  //   ShowError(
+  //       "Vulkan Render Pass",
+  //       fmt::format(
+  //           "Unable to create Vulkan Render Pass.\nVulkan Error Code: [{}]",
+  //           result));
+  // }
 }
 
 void Vulkan::CreateFramebuffer() {
@@ -675,7 +679,7 @@ void Vulkan::CreateFramebuffer() {
 
     VkFramebufferCreateInfo framebufferInfo{};
     framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = renderPass;
+    framebufferInfo.renderPass = renderPass.Handle;
     framebufferInfo.attachmentCount = 1;
     framebufferInfo.pAttachments = attachments;
     framebufferInfo.width = swapChainExtent.width;
@@ -744,7 +748,7 @@ void Vulkan::CreateCommandBuffers() {
     VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass;
+    renderPassInfo.renderPass = renderPass.Handle;
     renderPassInfo.framebuffer = swapChainFramebuffers[i];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapChainExtent;

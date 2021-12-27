@@ -15,12 +15,15 @@
 struct VulkanQueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
   std::optional<uint32_t> presentFamily;
+  std::optional<uint32_t> transferFamily;
 
   std::vector<VkQueueFamilyProperties> properties;
 
   bool IsComplete() {
     return graphicsFamily.has_value() && presentFamily.has_value();
   }
+
+  bool SupportsTransfer() { return transferFamily.has_value(); }
 };
 
 struct VulkanSwapChainSupportDetails {
@@ -158,6 +161,10 @@ class VulkanPhysicalDevice {
 
       if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
         QueueFamilies.graphicsFamily = i;
+      }
+
+      if (queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) {
+        QueueFamilies.transferFamily = i;
       }
 
       if (presentSupport) {

@@ -90,6 +90,10 @@ class VulkanLogicalDevice {
                    &GraphicsQueue);
     vkGetDeviceQueue(Handle, PhysicalDevice.QueueFamilies.presentFamily.value(), 0,
                    &PresentQueue);
+    if (PhysicalDevice.QueueFamilies.SupportsTransfer()) {
+      vkGetDeviceQueue(Handle, PhysicalDevice.QueueFamilies.transferFamily.value(), 0,
+                   &TransferQueue);
+    }
   }
 
   void SetUp() {
@@ -111,6 +115,7 @@ class VulkanLogicalDevice {
   VkDevice Handle;
   VkQueue GraphicsQueue;
   VkQueue PresentQueue;
+  VkQueue TransferQueue;
   std::vector<const char *> Extensions;
   std::vector<const char *> Layers;
 
