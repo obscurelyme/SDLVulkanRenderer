@@ -9,22 +9,20 @@
 
 class Drawable {
   public:
-  Drawable() : logicalDevice(VK_NULL_HANDLE), renderPass(VK_NULL_HANDLE) {
-    // get the global logical device... ? maybe?
-  }
+  Drawable() = default;
+  ~Drawable() = default;
 
   virtual void Draw() = 0;
 
   protected:
-  VkDevice logicalDevice;
-  VkRenderPass renderPass;
+  VkDevice logicalDevice{VK_NULL_HANDLE};
+  VkRenderPass renderPass{VK_NULL_HANDLE};
 };
 
 class Triangle {
   public:
-  Triangle(VkDevice device, VkRenderPass renderPass, VkCommandBuffer command, VulkanSwapchain* swapChain) {
-    logicalDevice = device;
-    cmd = command;
+  Triangle(VkDevice device, VkRenderPass renderPass, VkCommandBuffer command, VulkanSwapchain* swapChain) :
+      logicalDevice(device), renderPass(renderPass), cmd(command), swapChain(swapChain) {
     _pipeline =
         _pipelineBuilder.ShaderStageInfo(VK_SHADER_STAGE_VERTEX_BIT, VulkanShaderManager::ShaderModule("vert.spv"))
             .ShaderStageInfo(VK_SHADER_STAGE_FRAGMENT_BIT, VulkanShaderManager::ShaderModule("frag.spv"))
@@ -52,12 +50,12 @@ class Triangle {
 
   private:
   PipelineBuilder _pipelineBuilder;
-  VkPipeline _pipeline;
+  VkPipeline _pipeline{VK_NULL_HANDLE};
 
-  VkDevice logicalDevice;
-  VkRenderPass renderPass;
-  VkCommandBuffer cmd;
-  VulkanSwapchain* swapChain;
+  VkDevice logicalDevice{VK_NULL_HANDLE};
+  VkRenderPass renderPass{VK_NULL_HANDLE};
+  VkCommandBuffer cmd{VK_NULL_HANDLE};
+  VulkanSwapchain* swapChain{nullptr};
 };
 
 #endif

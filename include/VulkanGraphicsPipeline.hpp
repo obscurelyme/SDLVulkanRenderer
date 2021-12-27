@@ -26,7 +26,7 @@ class PipelineBuilder {
   /**
    * @brief Inserts a shader module into the render pipeline
    */
-  PipelineBuilder& ShaderStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule) {
+  auto ShaderStageInfo(VkShaderStageFlagBits stage, VkShaderModule shaderModule) -> PipelineBuilder& {
     VkPipelineShaderStageCreateInfo info{};
 
     info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -46,7 +46,7 @@ class PipelineBuilder {
   /**
    * @brief Sets information about Vertex buffers and formats for the shaders
    */
-  PipelineBuilder& VertexInputInfo() {
+  auto VertexInputInfo() -> PipelineBuilder& {
     VkPipelineVertexInputStateCreateInfo info = {};
 
     info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -66,7 +66,7 @@ class PipelineBuilder {
   /**
    * @brief Specifies what kind of topology will be drawn.
    */
-  PipelineBuilder& InputAssembly(VkPrimitiveTopology topology) {
+  auto InputAssembly(VkPrimitiveTopology topology) -> PipelineBuilder& {
     VkPipelineInputAssemblyStateCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     info.pNext = nullptr;
@@ -90,7 +90,7 @@ class PipelineBuilder {
    * @param minDepth Typically 0.0f
    * @param maxDepth Typically 1.0f
    */
-  PipelineBuilder& Viewport(float x, float y, float width, float height, float minDepth, float maxDepth) {
+  auto Viewport(float x, float y, float width, float height, float minDepth, float maxDepth) -> PipelineBuilder& {
     VkViewport v{.x = x, .y = y, .width = width, .height = height, .minDepth = minDepth, .maxDepth = maxDepth};
     _viewport = v;
     return *this;
@@ -99,7 +99,7 @@ class PipelineBuilder {
   /**
    * @brief Configure the Scissor object from the Swapchain extents.
    */
-  PipelineBuilder& Scissor(int32_t xOffset, int32_t yOffset, VkExtent2D swapChainExtent) {
+  auto Scissor(int32_t xOffset, int32_t yOffset, VkExtent2D swapChainExtent) -> PipelineBuilder& {
     _scissor.offset.x = xOffset;
     _scissor.offset.y = yOffset;
     _scissor.extent = swapChainExtent;
@@ -110,7 +110,7 @@ class PipelineBuilder {
   /**
    * @brief Configuration for the fixed-function rasterization.
    */
-  PipelineBuilder& Rasterizer(VkPolygonMode polygonMode) {
+  auto Rasterizer(VkPolygonMode polygonMode) -> PipelineBuilder& {
     VkPipelineRasterizationStateCreateInfo info = {};
 
     info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -137,7 +137,7 @@ class PipelineBuilder {
   /**
    * @brief Controls how this pipeline blends into a given attachment.
    */
-  PipelineBuilder& ColorBlendAttachState() {
+  auto ColorBlendAttachState() -> PipelineBuilder& {
     VkPipelineColorBlendAttachmentState info = {};
 
     info.colorWriteMask =
@@ -152,7 +152,7 @@ class PipelineBuilder {
    * @brief Configure MSAA for the pipeline. Note that the renderpass needs to support
    * MSAA if this is to be enabled.
    */
-  PipelineBuilder& MultiSampling() {
+  auto MultiSampling() -> PipelineBuilder& {
     VkPipelineMultisampleStateCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
     info.pNext = nullptr;
@@ -169,7 +169,7 @@ class PipelineBuilder {
     return *this;
   }
 
-  PipelineBuilder& PipelineLayout(VkDevice device) {
+  auto PipelineLayout(VkDevice device) -> PipelineBuilder& {
     VkPipelineLayoutCreateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     info.pNext = nullptr;
@@ -192,7 +192,7 @@ class PipelineBuilder {
     return *this;
   }
 
-  VkPipeline Build(VkDevice device, VkRenderPass renderPass) {
+  auto Build(VkDevice device, VkRenderPass renderPass) -> VkPipeline {
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.pNext = nullptr;

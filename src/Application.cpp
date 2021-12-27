@@ -3,11 +3,12 @@
 #include <fmt/core.h>
 
 #include <iostream>
+#include <utility>
 
 #include "VulkanShaderManager.hpp"
 
-Application::Application(const std::string &name, int windowWidth, int windowHeight) :
-    appName(name), window(nullptr), renderer(nullptr), event({}), quit(false) {
+Application::Application(std::string name, int windowWidth, int windowHeight) :
+    appName(std::move(name)), window(nullptr), renderer(nullptr), event({}), quit(false) {
   if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
     // Error
   }

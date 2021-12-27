@@ -4,6 +4,8 @@
 #include <fmt/core.h>
 #include <vulkan/vulkan.h>
 
+#include <array>
+
 #include "SimpleMessageBox.hpp"
 #include "VulkanLogicalDevice.hpp"
 #include "VulkanRenderPass.hpp"
@@ -11,9 +13,9 @@
 
 class VulkanFramebuffer {
   public:
-  VulkanFramebuffer() : _logicalDevice(nullptr), _swapChain(nullptr), _renderPass(nullptr), FramebufferHandles({}) {}
+  VulkanFramebuffer() : FramebufferHandles({}) {}
 
-  ~VulkanFramebuffer() {}
+  ~VulkanFramebuffer() = default;
 
   void ClearFramebufferHandles() {
     if (_logicalDevice->Handle != nullptr) {
@@ -36,13 +38,13 @@ class VulkanFramebuffer {
     FramebufferHandles.resize(swapChainImageViews.size());
 
     for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-      VkImageView attachments[] = {swapChainImageViews[i]};
+      std::array<VkImageView, 1> attachments{swapChainImageViews[i]};
 
       VkFramebufferCreateInfo framebufferInfo{};
       framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
       framebufferInfo.renderPass = _renderPass->Handle;
       framebufferInfo.attachmentCount = 1;
-      framebufferInfo.pAttachments = attachments;
+      framebufferInfo.pAttachments = attachments.data();
       framebufferInfo.width = swapChainExtent.width;
       framebufferInfo.height = swapChainExtent.height;
       framebufferInfo.layers = 1;
@@ -60,9 +62,9 @@ class VulkanFramebuffer {
   std::vector<VkFramebuffer> FramebufferHandles;
 
   private:
-  VulkanLogicalDevice* _logicalDevice;
-  VulkanSwapchain* _swapChain;
-  VulkanRenderPass* _renderPass;
+  VulkanLogicalDevice* _logicalDevice{nullptr};
+  VulkanSwapchain* _swapChain{nullptr};
+  VulkanRenderPass* _renderPass{nullptr};
 };
 
 #endif

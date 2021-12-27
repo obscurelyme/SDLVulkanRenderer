@@ -16,16 +16,7 @@
 
 class VulkanCommands {
   public:
-  VulkanCommands() :
-      _logicalDevice(nullptr),
-      _physicalDevice(nullptr),
-      _swapChain(nullptr),
-      _renderPass(nullptr),
-      _framebuffer(nullptr),
-      _commandPool(VK_NULL_HANDLE),
-      _commandBuffers({}),
-      _mainCommandBuffer(VK_NULL_HANDLE),
-      clearColor({}) {
+  VulkanCommands() : _commandBuffers({}), clearColor({}) {
     // NOTE: default clear color is black
     clearColor.color = {0.0f, 0.0f, 0.0f, 1.0f};
   }
@@ -131,15 +122,15 @@ class VulkanCommands {
   VkCommandBuffer& GetBuffer() { return _mainCommandBuffer; }
 
   private:
-  VulkanLogicalDevice* _logicalDevice;
-  VulkanPhysicalDevice* _physicalDevice;
-  VulkanSwapchain* _swapChain;
-  VulkanRenderPass* _renderPass;
-  VulkanFramebuffer* _framebuffer;
-  VkCommandPool _commandPool;
+  VulkanLogicalDevice* _logicalDevice{nullptr};
+  VulkanPhysicalDevice* _physicalDevice{nullptr};
+  VulkanSwapchain* _swapChain{nullptr};
+  VulkanRenderPass* _renderPass{nullptr};
+  VulkanFramebuffer* _framebuffer{nullptr};
+  VkCommandPool _commandPool{VK_NULL_HANDLE};
   std::vector<VkCommandBuffer> _commandBuffers;
 
-  VkCommandBuffer _mainCommandBuffer;
+  VkCommandBuffer _mainCommandBuffer{VK_NULL_HANDLE};
   VkClearValue clearColor;
 };
 

@@ -1,71 +1,50 @@
 #ifndef _coffeemaker_vulkan_logical_device_hpp
 #define _coffeemaker_vulkan_logical_device_hpp
 
-#include <vector>
 #include <vulkan/vulkan.h>
-#include "VulkanPhysicalDevice.hpp"
-#include "SimpleMessageBox.hpp"
+
 #include <set>
+#include <vector>
+
+#include "SimpleMessageBox.hpp"
+#include "VulkanPhysicalDevice.hpp"
 
 class VulkanLogicalDevice {
   public:
-  VulkanLogicalDevice():
-    Handle(VK_NULL_HANDLE), 
-    Extensions({}),
-    Layers({}),
-    _enableValidationLayers(false),
-    _queueCreateInfos({}),
-    _logicalDeviceCreateInfo({}) {};
+  VulkanLogicalDevice() : Extensions({}), Layers({}), _queueCreateInfos({}), _logicalDeviceCreateInfo({}){};
 
   explicit VulkanLogicalDevice(const VulkanPhysicalDevice& physicalDevice) :
-    PhysicalDevice(physicalDevice), 
-    Handle(VK_NULL_HANDLE), 
-    Extensions({}),
-    Layers({}),
-    _enableValidationLayers(false),
-    _queueCreateInfos({}),
-    _logicalDeviceCreateInfo({}) {
-      SetUp();
-    }
-  
+      PhysicalDevice(physicalDevice), Extensions({}), Layers({}), _queueCreateInfos({}), _logicalDeviceCreateInfo({}) {
+    SetUp();
+  }
+
   ~VulkanLogicalDevice() {
     if (Handle != VK_NULL_HANDLE) {
       DestroyHandle();
     }
   }
 
-  void DestroyHandle() { 
+  void DestroyHandle() {
     vkDestroyDevice(Handle, nullptr);
     Handle = VK_NULL_HANDLE;
   }
 
-  void SetPhysicalDevice(const VulkanPhysicalDevice& physicalDevice) {
-    PhysicalDevice = physicalDevice;
-  }
+  void SetPhysicalDevice(const VulkanPhysicalDevice& physicalDevice) { PhysicalDevice = physicalDevice; }
 
-  void SetExentions(const std::vector<const char *>& e) {
-    Extensions = e;
-  }
+  void SetExentions(const std::vector<const char*>& e) { Extensions = e; }
 
-  void SetLayers(const std::vector<const char *>& l) {
-    Layers = l;
-  }
+  void SetLayers(const std::vector<const char*>& l) { Layers = l; }
 
-  void EnableValidation(bool toggle) { 
-    _enableValidationLayers = toggle;
-  }
+  void EnableValidation(bool toggle) { _enableValidationLayers = toggle; }
 
   void Create() {
     _logicalDeviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
     _logicalDeviceCreateInfo.pNext = nullptr;
     _logicalDeviceCreateInfo.pQueueCreateInfos = _queueCreateInfos.data();
-    _logicalDeviceCreateInfo.queueCreateInfoCount =
-        static_cast<uint32_t>(_queueCreateInfos.size());
-    _logicalDeviceCreateInfo.pEnabledFeatures = nullptr; // NOTE: use later
-    _logicalDeviceCreateInfo.enabledExtensionCount =
-        static_cast<uint32_t>(Extensions.size());
+    _logicalDeviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(_queueCreateInfos.size());
+    _logicalDeviceCreateInfo.pEnabledFeatures = nullptr;  // NOTE: use later
+    _logicalDeviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(Extensions.size());
     _logicalDeviceCreateInfo.ppEnabledExtensionNames = Extensions.data();
-
 
     if (_enableValidationLayers) {
       _logicalDeviceCreateInfo.enabledLayerCount = Layers.size();
@@ -75,30 +54,23 @@ class VulkanLogicalDevice {
       _logicalDeviceCreateInfo.ppEnabledLayerNames = nullptr;
     }
 
-    VkResult result =
-      vkCreateDevice(PhysicalDevice.Handle, &_logicalDeviceCreateInfo, nullptr,
-                     &Handle);
+    VkResult result = vkCreateDevice(PhysicalDevice.Handle, &_logicalDeviceCreateInfo, nullptr, &Handle);
     if (result != VK_SUCCESS) {
       SimpleMessageBox::ShowError(
           "Vulkan Logical Device",
-          fmt::format(
-              "Unable to create Vulkan Logical Device.\nVulkan Error Code: [{}]",
-              result));
+          fmt::format("Unable to create Vulkan Logical Device.\nVulkan Error Code: [{}]", result));
     }
 
-    vkGetDeviceQueue(Handle, PhysicalDevice.QueueFamilies.graphicsFamily.value(), 0,
-                   &GraphicsQueue);
-    vkGetDeviceQueue(Handle, PhysicalDevice.QueueFamilies.presentFamily.value(), 0,
-                   &PresentQueue);
+    vkGetDeviceQueue(Handle, PhysicalDevice.QueueFamilies.graphicsFamily.value(), 0, &GraphicsQueue);
+    vkGetDeviceQueue(Handle, PhysicalDevice.QueueFamilies.presentFamily.value(), 0, &PresentQueue);
     if (PhysicalDevice.QueueFamilies.SupportsTransfer()) {
-      vkGetDeviceQueue(Handle, PhysicalDevice.QueueFamilies.transferFamily.value(), 0,
-                   &TransferQueue);
+      vkGetDeviceQueue(Handle, PhysicalDevice.QueueFamilies.transferFamily.value(), 0, &TransferQueue);
     }
   }
 
   void SetUp() {
     std::set<uint32_t> uniqueQueueFamilies = {PhysicalDevice.QueueFamilies.graphicsFamily.value(),
-                                            PhysicalDevice.QueueFamilies.presentFamily.value()};
+                                              PhysicalDevice.QueueFamilies.presentFamily.value()};
     float queuePriority = 1.0f;
 
     for (uint32_t queueFamily : uniqueQueueFamilies) {
@@ -112,15 +84,15 @@ class VulkanLogicalDevice {
   }
 
   VulkanPhysicalDevice PhysicalDevice;
-  VkDevice Handle;
+  VkDevice Handle{VK_NULL_HANDLE};
   VkQueue GraphicsQueue;
   VkQueue PresentQueue;
   VkQueue TransferQueue;
-  std::vector<const char *> Extensions;
-  std::vector<const char *> Layers;
+  std::vector<const char*> Extensions;
+  std::vector<const char*> Layers;
 
   private:
-  bool _enableValidationLayers;
+  bool _enableValidationLayers{false};
   std::vector<VkDeviceQueueCreateInfo> _queueCreateInfos;
   VkDeviceCreateInfo _logicalDeviceCreateInfo;
 };

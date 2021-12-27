@@ -12,9 +12,6 @@
 class VulkanRenderPass {
   public:
   VulkanRenderPass() :
-      Handle(VK_NULL_HANDLE),
-      _logicalDevice(nullptr),
-      _swapChain(nullptr),
       _renderPassInfo({}),
       _subpassDescription({}),
       _colorAttachmentDescription({}),
@@ -51,7 +48,7 @@ class VulkanRenderPass {
     CreateRenderPass();
   }
 
-  VkRenderPass Handle;
+  VkRenderPass Handle{VK_NULL_HANDLE};
 
   private:
   void CreateSubpassDependency() {
@@ -109,8 +106,8 @@ class VulkanRenderPass {
     }
   }
 
-  VulkanLogicalDevice* _logicalDevice;
-  VulkanSwapchain* _swapChain;
+  VulkanLogicalDevice* _logicalDevice{nullptr};
+  VulkanSwapchain* _swapChain{nullptr};
 
   VkRenderPassCreateInfo _renderPassInfo;
   VkSubpassDescription _subpassDescription;

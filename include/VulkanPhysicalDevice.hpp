@@ -1,16 +1,18 @@
 #ifndef _coffeemaker_vulkan_physical_device_hpp
 #define _coffeemaker_vulkan_physical_device_hpp
 
-#include <vulkan/vulkan.h>
-#include <vector>
-#include "SimpleMessageBox.hpp"
 #include <fmt/core.h>
-#include <set>
-#include <optional>
-#include <iostream>
+#include <vulkan/vulkan.h>
+
 #include <algorithm>
+#include <iostream>
 #include <map>
+#include <optional>
+#include <set>
 #include <utility>
+#include <vector>
+
+#include "SimpleMessageBox.hpp"
 
 struct VulkanQueueFamilyIndices {
   std::optional<uint32_t> graphicsFamily;
@@ -19,9 +21,7 @@ struct VulkanQueueFamilyIndices {
 
   std::vector<VkQueueFamilyProperties> properties;
 
-  bool IsComplete() {
-    return graphicsFamily.has_value() && presentFamily.has_value();
-  }
+  bool IsComplete() { return graphicsFamily.has_value() && presentFamily.has_value(); }
 
   bool SupportsTransfer() { return transferFamily.has_value(); }
 };
@@ -53,21 +53,23 @@ struct VulkanPhysicalDeviceType {
 
 class VulkanPhysicalDevice {
   public:
-  VulkanPhysicalDevice(): Surface(VK_NULL_HANDLE), Handle(VK_NULL_HANDLE), Properties({}), Features({}), SupportedExtensions({}), SwapChainSupport({}), QueueFamilies({}) {}
-  
-  explicit VulkanPhysicalDevice(VkPhysicalDevice d) : Surface(VK_NULL_HANDLE), Handle(d), Properties({}), Features({}), SupportedExtensions({}), SwapChainSupport({}), QueueFamilies({}) {
-      if (d == nullptr) {
-        return;
-      }
-      vkGetPhysicalDeviceProperties(Handle, &Properties);
-      vkGetPhysicalDeviceFeatures(Handle, &Features);
+  VulkanPhysicalDevice() :
+      Properties({}), Features({}), SupportedExtensions({}), SwapChainSupport({}), QueueFamilies({}) {}
 
-      uint32_t extensionCount;
-      vkEnumerateDeviceExtensionProperties(Handle, nullptr, &extensionCount, nullptr);
-      SupportedExtensions.resize(extensionCount);
-      vkEnumerateDeviceExtensionProperties(Handle, nullptr, &extensionCount, SupportedExtensions.data());
+  explicit VulkanPhysicalDevice(VkPhysicalDevice d) :
+      Handle(d), Properties({}), Features({}), SupportedExtensions({}), SwapChainSupport({}), QueueFamilies({}) {
+    if (d == nullptr) {
+      return;
+    }
+    vkGetPhysicalDeviceProperties(Handle, &Properties);
+    vkGetPhysicalDeviceFeatures(Handle, &Features);
 
-      std::cout << "Device made " << Properties.deviceName << std::endl;
+    uint32_t extensionCount;
+    vkEnumerateDeviceExtensionProperties(Handle, nullptr, &extensionCount, nullptr);
+    SupportedExtensions.resize(extensionCount);
+    vkEnumerateDeviceExtensionProperties(Handle, nullptr, &extensionCount, SupportedExtensions.data());
+
+    std::cout << "Device made " << Properties.deviceName << std::endl;
   }
 
   VulkanPhysicalDevice(const VulkanPhysicalDevice& d) {
@@ -106,13 +108,11 @@ class VulkanPhysicalDevice {
     vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
     if (deviceCount == 0) {
-      SimpleMessageBox::ShowError("Vulkan Physical Device",
-                "Unable to find GPUs with Vulkan support.");
+      SimpleMessageBox::ShowError("Vulkan Physical Device", "Unable to find GPUs with Vulkan support.");
     }
 
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
-
 
     for (VkPhysicalDevice device : devices) {
       VulkanPhysicalDevice newDevice{device};
@@ -134,11 +134,10 @@ class VulkanPhysicalDevice {
     return physicalDeviceNames;
   }
 
-  bool AreExtensionsSupported(std::vector<const char *> requestedExtensions) {
-    std::set<std::string> requiredExtensions(requestedExtensions.begin(),
-                                           requestedExtensions.end());
+  bool AreExtensionsSupported(std::vector<const char*> requestedExtensions) {
+    std::set<std::string> requiredExtensions(requestedExtensions.begin(), requestedExtensions.end());
 
-    for (const auto &extension : SupportedExtensions) {
+    for (const auto& extension : SupportedExtensions) {
       requiredExtensions.erase(extension.extensionName);
     }
 
@@ -150,14 +149,12 @@ class VulkanPhysicalDevice {
     vkGetPhysicalDeviceQueueFamilyProperties(Handle, &queueFamilyCount, nullptr);
 
     QueueFamilies.properties.resize(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(Handle, &queueFamilyCount,
-                                            QueueFamilies.properties.data());
+    vkGetPhysicalDeviceQueueFamilyProperties(Handle, &queueFamilyCount, QueueFamilies.properties.data());
 
     int i = 0;
-    for (const auto &queueFamily : QueueFamilies.properties) {
+    for (const auto& queueFamily : QueueFamilies.properties) {
       VkBool32 presentSupport = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(Handle, i, Surface,
-                                          &presentSupport);
+      vkGetPhysicalDeviceSurfaceSupportKHR(Handle, i, Surface, &presentSupport);
 
       if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
         QueueFamilies.graphicsFamily = i;
@@ -180,42 +177,36 @@ class VulkanPhysicalDevice {
   }
 
   void QuerySwapChainSupport() {
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Handle, Surface,
-                                              &SwapChainSupport.capabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Handle, Surface, &SwapChainSupport.capabilities);
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(Handle, Surface, &formatCount,
-                                        nullptr);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(Handle, Surface, &formatCount, nullptr);
     if (formatCount != 0) {
       SwapChainSupport.formats.resize(formatCount);
-      vkGetPhysicalDeviceSurfaceFormatsKHR(Handle, Surface, &formatCount,
-                                          SwapChainSupport.formats.data());
+      vkGetPhysicalDeviceSurfaceFormatsKHR(Handle, Surface, &formatCount, SwapChainSupport.formats.data());
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(Handle, Surface,
-                                              &presentModeCount, nullptr);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(Handle, Surface, &presentModeCount, nullptr);
     if (presentModeCount != 0) {
       SwapChainSupport.presentModes.resize(presentModeCount);
-      vkGetPhysicalDeviceSurfacePresentModesKHR(
-          Handle, Surface, &presentModeCount, SwapChainSupport.presentModes.data());
+      vkGetPhysicalDeviceSurfacePresentModesKHR(Handle, Surface, &presentModeCount,
+                                                SwapChainSupport.presentModes.data());
     }
   }
 
-  void SetSurface(VkSurfaceKHR surface) {
-    Surface = surface;
-  }
+  void SetSurface(VkSurfaceKHR surface) { Surface = surface; }
 
   bool IsDiscreteGPU() { return Properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU; }
 
   bool IsIntegratedGPU() { return Properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU; }
 
-  const char * Name() { return Properties.deviceName; }
+  const char* Name() { return Properties.deviceName; }
 
   std::string ToString() {
     return fmt::format("[{}:{}]", Properties.deviceName, VulkanPhysicalDeviceType::ToString(Properties.deviceType));
   }
 
-  VulkanPhysicalDevice HighestRatedDevice() {     
+  VulkanPhysicalDevice HighestRatedDevice() {
     int bestScore = 0;
     VulkanPhysicalDevice bestDevice;
 
@@ -224,26 +215,24 @@ class VulkanPhysicalDevice {
         bestDevice = ratedDevice.second;
         bestScore = ratedDevice.first;
       }
-    } 
+    }
 
     return bestDevice;
   }
 
-  VkSurfaceKHR Surface;
-  VkPhysicalDevice Handle;
+  VkSurfaceKHR Surface{VK_NULL_HANDLE};
+  VkPhysicalDevice Handle{VK_NULL_HANDLE};
   VkPhysicalDeviceProperties Properties;
   VkPhysicalDeviceFeatures Features;
   std::vector<VkExtensionProperties> SupportedExtensions;
   VulkanSwapChainSupportDetails SwapChainSupport;
   VulkanQueueFamilyIndices QueueFamilies;
 
-
   static std::vector<VulkanPhysicalDevice> PhysicalDevices;
   static std::multimap<int, VulkanPhysicalDevice> RatedPhysicalDevices;
 
   private:
-
-  static void RateAllDevices() { 
+  static void RateAllDevices() {
     for (auto& device : PhysicalDevices) {
       int score = RateDevice(device);
       RatedPhysicalDevices.insert(std::make_pair(score, device));
@@ -252,7 +241,7 @@ class VulkanPhysicalDevice {
 
   /**
    * Determine a score for a device based on Properties and Features that are supported.
-   * 
+   *
    * @see https://www.khronos.org/registry/vulkan/specs/1.2-extensions/man/html/VkPhysicalDeviceLimits.html
    */
   static int RateDevice(const VulkanPhysicalDevice& device) {

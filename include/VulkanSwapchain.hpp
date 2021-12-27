@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.h>
 
 #include <algorithm>
+#include <array>
 #include <vector>
 
 #include "SimpleMessageBox.hpp"
@@ -14,7 +15,7 @@
 
 class VulkanSwapchain {
   public:
-  VulkanSwapchain() : _window(nullptr), _physicalDevice(nullptr), _logicalDevice(nullptr) {}
+  VulkanSwapchain() = default;
 
   ~VulkanSwapchain() {
     if (Handle != VK_NULL_HANDLE && _logicalDevice->Handle != VK_NULL_HANDLE) {
@@ -98,11 +99,11 @@ class VulkanSwapchain {
     createInfo.imageArrayLayers = 1;
     createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
+    std::array<uint32_t, 2> queueFamilyIndices{indices.graphicsFamily.value(), indices.presentFamily.value()};
     if (indices.graphicsFamily != indices.presentFamily) {
       createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
       createInfo.queueFamilyIndexCount = 2;
-      createInfo.pQueueFamilyIndices = queueFamilyIndices;
+      createInfo.pQueueFamilyIndices = queueFamilyIndices.data();
     } else {
       createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
       createInfo.queueFamilyIndexCount = 0;      // Optional
@@ -171,9 +172,9 @@ class VulkanSwapchain {
   VkSwapchainKHR Handle;
 
   private:
-  SDL_Window* _window;
-  VulkanPhysicalDevice* _physicalDevice;
-  VulkanLogicalDevice* _logicalDevice;
+  SDL_Window* _window{nullptr};
+  VulkanPhysicalDevice* _physicalDevice{nullptr};
+  VulkanLogicalDevice* _logicalDevice{nullptr};
   VkSurfaceFormatKHR _surfaceFormat;
   VkPresentModeKHR _presentMode;
   VkExtent2D _extent;
