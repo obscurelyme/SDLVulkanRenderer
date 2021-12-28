@@ -69,6 +69,8 @@ class VulkanPhysicalDevice {
     SupportedExtensions.resize(extensionCount);
     vkEnumerateDeviceExtensionProperties(Handle, nullptr, &extensionCount, SupportedExtensions.data());
 
+    vkGetPhysicalDeviceMemoryProperties(Handle, &MemoryProperties);
+
     std::cout << "Device made " << Properties.deviceName << std::endl;
   }
 
@@ -220,8 +222,22 @@ class VulkanPhysicalDevice {
     return bestDevice;
   }
 
+  int32_t FindMemoryType(uint32_t requiredMemoryBits, VkMemoryPropertyFlags requiredPropertyFlags) {
+    for (uint32_t i = 0; i < MemoryProperties.memoryTypeCount; i++) {
+      const bool isRequiredMemoryType = requiredMemoryBits & (1 << i);
+      const bool hasRequiredProperties = MemoryProperties.memoryTypes[i].propertyFlags & requiredPropertyFlags;
+
+      if (hasRequiredProperties && isRequiredMemoryType) {
+        return static_cast<int32_t>(i);
+      }
+    }
+
+    return -1;  // No suitable memory type found
+  }
+
   VkSurfaceKHR Surface{VK_NULL_HANDLE};
   VkPhysicalDevice Handle{VK_NULL_HANDLE};
+  VkPhysicalDeviceMemoryProperties MemoryProperties;
   VkPhysicalDeviceProperties Properties;
   VkPhysicalDeviceFeatures Features;
   std::vector<VkExtensionProperties> SupportedExtensions;

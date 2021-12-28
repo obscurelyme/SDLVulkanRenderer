@@ -10,6 +10,9 @@
 
 #include "VulkanShaderManager.hpp"
 
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
 int Vulkan::MAX_FRAMES_IN_FLIGHT = 2;
 
 Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
@@ -29,6 +32,7 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateSurface();
   PickPhysicalDevice();
   CreateLogicalDevice();
+  CreateMemoryAllocator();
   CreateSwapChain();
   CreateRenderPass();
   CreateGraphicsPipeline();
@@ -37,7 +41,7 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateCommandPool();
   CreateCommandBuffers();
   CreateSemaphores();
-  triangle = new Triangle(logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  triangle = new Triangle(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
 
 Vulkan::~Vulkan() {
@@ -59,6 +63,7 @@ Vulkan::~Vulkan() {
   commands.DestroyPool();
   vkDestroyCommandPool(logicalDevice.Handle, commandPool, nullptr);
   VulkanShaderManager::CleanAllShaders();
+  vmaDestroyAllocator(allocator);
   logicalDevice.DestroyHandle();
   if (vulkanInstanceInitialized) {
     vkDestroySurfaceKHR(vulkanInstance, vulkanSurface, nullptr);
@@ -439,6 +444,14 @@ void Vulkan::CreateLogicalDevice() {
   logicalDevice.SetUp();
   logicalDevice.Create();
   VulkanShaderManager::AssignLogicalDevice(logicalDevice.Handle);
+}
+
+void Vulkan::CreateMemoryAllocator() {
+  VmaAllocatorCreateInfo info{};
+  info.physicalDevice = physicalDevice.Handle;
+  info.device = logicalDevice.Handle;
+  info.instance = vulkanInstance;
+  vmaCreateAllocator(&info, &allocator);
 }
 
 void Vulkan::CreateSurface() {

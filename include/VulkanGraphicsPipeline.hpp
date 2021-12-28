@@ -7,6 +7,21 @@
 #include <vector>
 
 #include "SimpleMessageBox.hpp"
+#include "VulkanMesh.hpp"
+
+// VkBuffer CreateVertexBuffer(VkDevice device, const std::vector<float>& vertices) {
+//   VkBuffer buffer;
+//   VkBufferCreateInfo info{};
+
+//   info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+//   info.size = sizeof(vertices[0]) * vertices.size();
+//   info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+//   info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+//   vkCreateBuffer(device, &info, nullptr, &buffer);
+
+//   return buffer;
+// }
 
 /**
  * @brief Builder class for VkPipeline structs
@@ -57,6 +72,26 @@ class PipelineBuilder {
     info.pVertexBindingDescriptions = nullptr;
     info.vertexAttributeDescriptionCount = 0;
     info.pVertexAttributeDescriptions = nullptr;
+
+    _vertexInputInfo = info;
+
+    return *this;
+  }
+
+  /**
+   * @brief Sets information about Vertex buffers and formats for the shaders
+   */
+  auto VertexInputInfo(VertexInputDescription inputDescription) -> PipelineBuilder& {
+    VkPipelineVertexInputStateCreateInfo info = {};
+
+    info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    info.pNext = nullptr;
+
+    // NOTE: no vertex bindings or attributes
+    info.vertexBindingDescriptionCount = inputDescription.bindings.size();
+    info.pVertexBindingDescriptions = inputDescription.bindings.data();
+    info.vertexAttributeDescriptionCount = inputDescription.attributes.size();
+    info.pVertexAttributeDescriptions = inputDescription.attributes.data();
 
     _vertexInputInfo = info;
 

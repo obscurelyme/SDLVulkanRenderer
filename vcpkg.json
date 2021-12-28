@@ -3,6 +3,7 @@
   "version-string": "1.0.0",
   "dependencies": [
     "fmt",
+    "glm",
     {
       "name": "sdl2",
       "default-features": false,
@@ -14,7 +15,8 @@
       "default-features": false,
       "features": ["vulkan", "x11"],
       "platform": "linux"
-    }
+    },
+    "vulkan-memory-allocator"
   ],
   "builtin-baseline": "b3cfaaf1bba70febd07c2f672ae590dc5d914180"
 }

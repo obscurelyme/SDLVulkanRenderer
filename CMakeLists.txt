@@ -9,6 +9,8 @@ project(HelloVulkan VERSION 0.1.0)
 find_package(Vulkan REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
+find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
+find_package(glm CONFIG REQUIRED)
 
 add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/main.cpp
@@ -18,18 +20,20 @@ add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/VulkanPhysicalDevice.cpp
   src/KeyboardEvent.cpp
   src/Triangle.cpp
+  src/VulkanMesh.cpp
 )
 target_include_directories(HelloVulkan PRIVATE include)
 
 if (VULKAN_FOUND)
   message(STATUS "Found Vulkan... ${Vulkan_LIBRARIES}")
-  target_link_libraries(HelloVulkan PRIVATE ${Vulkan_LIBRARIES} SDL2::SDL2 SDL2::SDL2main SDL2::SDL2-static fmt::fmt-header-only)
+  target_link_libraries(HelloVulkan PRIVATE ${Vulkan_LIBRARIES} glm::glm SDL2::SDL2 SDL2::SDL2main SDL2::SDL2-static fmt::fmt-header-only unofficial::vulkan-memory-allocator::vulkan-memory-allocator)
   target_include_directories(HelloVulkan PUBLIC ${Vulkan_INCLUDE_DIRS})
 else()
   message(FATAL_ERROR "Unable to find VulkanSDK. Please confirm you have Vulkan properly set up for this environment.")
 endif()
 
 add_compile_definitions(VK_ENABLE_BETA_EXTENSIONS)
+# add_compile_definitions(VMA_IMPLEMENTATION)
 
 if (APPLE)
   set_target_properties(HelloVulkan PROPERTIES

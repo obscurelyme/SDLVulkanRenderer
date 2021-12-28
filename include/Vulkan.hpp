@@ -3,6 +3,7 @@
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
 #include <array>
@@ -218,6 +219,7 @@ class Vulkan {
   void CreateCommandBuffers();
   void CreateCommands();
   void CreateSemaphores();
+  void CreateMemoryAllocator();
 
   void CreateSurface();
 
@@ -255,6 +257,7 @@ class Vulkan {
   static int MAX_FRAMES_IN_FLIGHT;
   bool framebufferResized;
 
+  VmaAllocator allocator;
   VulkanPhysicalDevice physicalDevice{nullptr};
   VulkanLogicalDevice logicalDevice;
   VulkanSwapchain swapChain;
