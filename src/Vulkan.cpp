@@ -58,6 +58,7 @@ Vulkan::~Vulkan() {
   syncUtils.DestroyHandles();
   commands.DestroyPool();
   vkDestroyCommandPool(logicalDevice.Handle, commandPool, nullptr);
+  VulkanShaderManager::CleanAllShaders();
   logicalDevice.DestroyHandle();
   if (vulkanInstanceInitialized) {
     vkDestroySurfaceKHR(vulkanInstance, vulkanSurface, nullptr);

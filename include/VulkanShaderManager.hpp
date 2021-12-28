@@ -54,7 +54,11 @@ class VulkanShaderManager {
   }
 
   static VkShaderModule ShaderModule(const std::string &filename) {
-    return CreateShaderModule(logicalDevice, ReadShaderFile(filename));
+    VkShaderModule module = CreateShaderModule(logicalDevice, ReadShaderFile(filename));
+
+    shaders.try_emplace(filename, module);
+
+    return module;
   }
 
   static VkShaderModule CreateShaderModule(VkDevice device, const std::vector<char> &code) {
@@ -79,9 +83,17 @@ class VulkanShaderManager {
 
   static void AssignLogicalDevice(VkDevice device) { logicalDevice = device; }
 
+  static void CleanAllShaders() {
+    for (auto p : shaders) {
+      vkDestroyShaderModule(logicalDevice, p.second, nullptr);
+    }
+    shaders.clear();
+  }
+
   private:
   static VkDevice logicalDevice;
   static std::map<std::string, std::vector<char>> shaderByteCodes;
+  static std::map<std::string, VkShaderModule> shaders;
 };
 
 #endif
