@@ -5,6 +5,7 @@
 #include <iostream>
 #include <utility>
 
+#include "Triangle.hpp"
 #include "VulkanShaderManager.hpp"
 
 Application::Application(std::string name, int windowWidth, int windowHeight) :
@@ -35,6 +36,9 @@ void Application::Run() {
           std::cout << fmt::format("Window resized: ({},{})", event.window.data1, event.window.data2) << std::endl;
           renderer->FramebufferResize();
         }
+      }
+      if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
+        SDLKeyboardEventManager::HandleKeyboardEvent(event.key);
       }
     }
 

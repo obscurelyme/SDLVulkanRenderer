@@ -16,6 +16,8 @@ add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/Application.cpp
   src/VulkanShaderManager.cpp
   src/VulkanPhysicalDevice.cpp
+  src/KeyboardEvent.cpp
+  src/Triangle.cpp
 )
 target_include_directories(HelloVulkan PRIVATE include)
 
