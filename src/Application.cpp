@@ -5,6 +5,7 @@
 #include <iostream>
 #include <utility>
 
+#include "Camera.hpp"
 #include "Triangle.hpp"
 #include "VulkanShaderManager.hpp"
 
@@ -17,6 +18,7 @@ Application::Application(std::string name, int windowWidth, int windowHeight) :
   window = SDL_CreateWindow(appName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowWidth,
                             windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
   renderer = new Vulkan(appName, window);
+  Camera::MainCamera();
 }
 
 Application::~Application() {

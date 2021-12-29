@@ -78,7 +78,13 @@
     "memory_resource": "cpp",
     "numeric": "cpp",
     "random": "cpp",
-    "cinttypes": "cpp"
+    "cinttypes": "cpp",
+    "condition_variable": "cpp",
+    "list": "cpp",
+    "semaphore": "cpp",
+    "shared_mutex": "cpp",
+    "stop_token": "cpp",
+    "thread": "cpp"
   },
   "[cpp]": {
     "editor.formatOnSave": true,

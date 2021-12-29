@@ -21,6 +21,7 @@ add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/KeyboardEvent.cpp
   src/Triangle.cpp
   src/VulkanMesh.cpp
+  src/Camera.cpp
 )
 target_include_directories(HelloVulkan PRIVATE include)
 
@@ -33,6 +34,8 @@ else()
 endif()
 
 add_compile_definitions(VK_ENABLE_BETA_EXTENSIONS)
+# Needed for Vulkan Z-range [0,1] rather than OpenGL [-1,1]
+add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE) 
 # add_compile_definitions(VMA_IMPLEMENTATION)
 
 if (APPLE)

@@ -227,6 +227,30 @@ class PipelineBuilder {
     return *this;
   }
 
+  auto PipelineLayout(VkDevice device, VkPushConstantRange pushConstant) -> PipelineBuilder& {
+    VkPipelineLayoutCreateInfo info{};
+    info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    info.pNext = nullptr;
+
+    // empty defaults
+    info.flags = 0;
+    info.setLayoutCount = 0;
+    info.pSetLayouts = nullptr;
+    // push constants
+    info.pushConstantRangeCount = 1;
+    info.pPushConstantRanges = &pushConstant;
+
+    VkResult result = vkCreatePipelineLayout(device, &info, nullptr, &_pipelineLayout);
+    if (result != VK_SUCCESS) {
+      SimpleMessageBox::ShowError("Vulkan Pipeline Layout",
+                                  fmt::format("Unable to create a Vulkan pipeline layout.\nVulkan "
+                                              "Error Code : [{}]",
+                                              result));
+    }
+
+    return *this;
+  }
+
   auto Build(VkDevice device, VkRenderPass renderPass) -> VkPipeline {
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
