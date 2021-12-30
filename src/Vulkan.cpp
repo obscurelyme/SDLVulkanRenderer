@@ -8,10 +8,11 @@
 #include <set>
 #include <vector>
 
+#include "VkInitializers.hpp"
+#include "VulkanAllocator.hpp"
 #include "VulkanShaderManager.hpp"
-
-#define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
+#include "imgui.h"
+#include "imgui_impl_vulkan.h"
 
 int Vulkan::MAX_FRAMES_IN_FLIGHT = 2;
 
@@ -38,8 +39,9 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateFramebuffer();
   CreateCommands();
   CreateSemaphores();
-  // triangle = new Triangle(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
-  suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  InitSyncStructures();
+  triangle = new Triangle(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  // suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
 
 Vulkan::~Vulkan() {
@@ -49,20 +51,17 @@ Vulkan::~Vulkan() {
     DestroyDebugUtilsMessengerEXT(nullptr);
   }
 
-  CleanupSwapChain();
-  // delete triangle;
-  delete suzanne;
+  vkDestroyCommandPool(logicalDevice.Handle, _uploadContext._commandPool, nullptr);
+  vkDestroyFence(logicalDevice.Handle, _uploadContext._uploadFence, nullptr);
 
-  // for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-  //   vkDestroySemaphore(logicalDevice.Handle, renderFinishedSemaphores[i], nullptr);
-  //   vkDestroySemaphore(logicalDevice.Handle, imageAvailableSemaphores[i], nullptr);
-  //   vkDestroyFence(logicalDevice.Handle, inFlightFences[i], nullptr);
-  // }
+  CleanupSwapChain();
+  delete triangle;
+  // delete suzanne;
+
   syncUtils.DestroyHandles();
   commands.DestroyPool();
-  // vkDestroyCommandPool(logicalDevice.Handle, commandPool, nullptr);
   VulkanShaderManager::CleanAllShaders();
-  vmaDestroyAllocator(allocator);
+  VulkanAllocator::DestroyAllocator();
   logicalDevice.DestroyHandle();
   if (vulkanInstanceInitialized) {
     vkDestroySurfaceKHR(vulkanInstance, vulkanSurface, nullptr);
@@ -73,10 +72,6 @@ Vulkan::~Vulkan() {
 void Vulkan::CleanupSwapChain() {
   framebuffer.ClearFramebufferHandles();
   commands.FreeCommandBuffers();
-  // vkFreeCommandBuffers(logicalDevice.Handle, commandPool, static_cast<uint32_t>(commandBuffers.size()),
-  //                      commandBuffers.data());
-  // vkDestroyPipeline(logicalDevice.Handle, graphicsPipeline, nullptr);
-  // vkDestroyPipelineLayout(logicalDevice.Handle, pipelineLayout, nullptr);
   renderPass.DestroyHandle();
   swapChain.DestroyHandle();
 }
@@ -97,6 +92,8 @@ void Vulkan::Draw2() {
   syncUtils.WaitForFence();
   syncUtils.ResetFence();
 
+  ImGui::Render();
+
   // NOTE: Request image from the swapchain, one second timeout
   uint32_t imageIndex;
   VkResult nxtImageResult = vkAcquireNextImageKHR(logicalDevice.Handle, swapChain.Handle, 1000000000,
@@ -112,8 +109,10 @@ void Vulkan::Draw2() {
 
   commands.BeginRecording(imageIndex);
   // vkCmd* stuff...
-  // triangle->Draw();
-  suzanne->Draw();
+  triangle->Draw();
+  // suzanne->Draw();
+
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetBuffer());
   commands.EndRecording();
 
   VkSemaphore presentSemaRef = syncUtils.PresentSemaphore();
@@ -377,11 +376,8 @@ void Vulkan::CreateLogicalDevice() {
 }
 
 void Vulkan::CreateMemoryAllocator() {
-  VmaAllocatorCreateInfo info{};
-  info.physicalDevice = physicalDevice.Handle;
-  info.device = logicalDevice.Handle;
-  info.instance = vulkanInstance;
-  vmaCreateAllocator(&info, &allocator);
+  VulkanAllocator::CreateAllocator(physicalDevice.Handle, logicalDevice.Handle, vulkanInstance);
+  allocator = VulkanAllocator::allocator;
 }
 
 void Vulkan::CreateSurface() {
@@ -442,6 +438,10 @@ void Vulkan::CreateCommands() {
   commands.SetPhysicalDevice(&physicalDevice);
   commands.CreateCommandPool();
   commands.CreateCommandBuffers();
+
+  VkCommandPoolCreateInfo uploadCommandPoolInfo =
+      VkInit::CommandPoolCreateInfo(physicalDevice.QueueFamilies.graphicsFamily.value());
+  vkCreateCommandPool(logicalDevice.Handle, &uploadCommandPoolInfo, nullptr, &_uploadContext._commandPool);
 }
 
 void Vulkan::CreateSemaphores() {
@@ -449,4 +449,31 @@ void Vulkan::CreateSemaphores() {
   syncUtils.CreateSemaphores();
   syncUtils.CreateRenderFence();
   syncUtils.Build();
+}
+
+void Vulkan::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function) {
+  VkCommandBufferAllocateInfo cmdAllocInfo = VkInit::CommandBufferAllocateInfo(_uploadContext._commandPool, 1);
+
+  VkCommandBuffer cmd;
+
+  vkAllocateCommandBuffers(logicalDevice.Handle, &cmdAllocInfo, &cmd);
+
+  VkCommandBufferBeginInfo cmdBeginInfo = VkInit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+  vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+
+  function(cmd);
+
+  vkEndCommandBuffer(cmd);
+
+  VkSubmitInfo submit = VkInit::SubmitInfo(&cmd);
+  vkQueueSubmit(logicalDevice.GraphicsQueue, 1, &submit, _uploadContext._uploadFence);
+  vkWaitForFences(logicalDevice.Handle, 1, &_uploadContext._uploadFence, true, 9999999999);
+  vkResetFences(logicalDevice.Handle, 1, &_uploadContext._uploadFence);
+  vkResetCommandPool(logicalDevice.Handle, _uploadContext._commandPool, 0);
+}
+
+void Vulkan::InitSyncStructures() {
+  VkFenceCreateInfo uploadFenceCreateInfo = VkInit::FenceCreateInfo();
+  vkCreateFence(logicalDevice.Handle, &uploadFenceCreateInfo, nullptr, &_uploadContext._uploadFence);
 }

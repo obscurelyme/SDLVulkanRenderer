@@ -1,4 +1,36 @@
+
 #include "VkUtils.hpp"
+
+#include <SDL2/SDL.h>
+#include <fmt/core.h>
+
+#include "VulkanAllocator.hpp"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+Texture::~Texture() { vmaDestroyBuffer(VulkanAllocator::allocator, buffer.buffer, buffer.allocation); }
+
+AllocatedBuffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
+  // allocate vertex buffer
+  VkBufferCreateInfo bufferInfo = {};
+  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  bufferInfo.pNext = nullptr;
+
+  bufferInfo.size = allocSize;
+  bufferInfo.usage = usage;
+
+  VmaAllocationCreateInfo vmaallocInfo = {};
+  vmaallocInfo.usage = memoryUsage;
+
+  AllocatedBuffer newBuffer;
+
+  // allocate the buffer
+  vmaCreateBuffer(VulkanAllocator::allocator, &bufferInfo, &vmaallocInfo, &newBuffer.buffer, &newBuffer.allocation,
+                  nullptr);
+
+  return newBuffer;
+}
 
 VkImageCreateInfo CreateImageInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent) {
   VkImageCreateInfo info = {};
@@ -54,4 +86,29 @@ VkPipelineDepthStencilStateCreateInfo CreateDepthStencilCreateInfo(bool bDepthTe
   info.stencilTestEnable = VK_FALSE;
 
   return info;
+}
+
+Texture StbLoadImage(const std::string& filename) {
+  std::string fullfilename = fmt::format("{}{}", SDL_GetBasePath(), filename);
+  int width, height, channels;
+  stbi_uc* pixels = stbi_load(fullfilename.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+
+  Texture t{};
+  t.width = width;
+  t.height = height;
+  t.channels = channels;
+  t.filename = filename;
+  t.format = VK_FORMAT_R8G8B8A8_SRGB;
+  t.size = static_cast<VkDeviceSize>(width * height * 4);
+
+  t.buffer = CreateBuffer(t.size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+
+  void* data;
+  vmaMapMemory(VulkanAllocator::allocator, t.buffer.allocation, &data);
+  memcpy(data, pixels, t.size);
+  vmaUnmapMemory(VulkanAllocator::allocator, t.buffer.allocation);
+
+  stbi_image_free(pixels);
+
+  return t;
 }

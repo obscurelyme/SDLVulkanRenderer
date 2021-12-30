@@ -12,6 +12,8 @@ find_package(fmt CONFIG REQUIRED)
 find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
+find_path(STB_INCLUDE_DIRS "stb.h")
+find_package(imgui CONFIG REQUIRED)
 
 add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/main.cpp
@@ -25,8 +27,12 @@ add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/Camera.cpp
   src/Suzanne.cpp
   src/VkUtils.cpp
+  src/VulkanAllocator.cpp
+  src/VkImGui.cpp
+  src/VkInitializers.cpp
 )
 target_include_directories(HelloVulkan PRIVATE include)
+target_include_directories(HelloVulkan PRIVATE ${STB_INCLUDE_DIRS})
 
 if (VULKAN_FOUND)
   message(STATUS "Found Vulkan... ${Vulkan_LIBRARIES}")
@@ -38,6 +44,7 @@ if (VULKAN_FOUND)
     fmt::fmt-header-only 
     unofficial::vulkan-memory-allocator::vulkan-memory-allocator 
     tinyobjloader::tinyobjloader
+    imgui::imgui
   )
   target_include_directories(HelloVulkan PUBLIC ${Vulkan_INCLUDE_DIRS})
 else()
@@ -48,7 +55,7 @@ add_compile_definitions(VK_ENABLE_BETA_EXTENSIONS)
 # Needed for Vulkan Z-range [0,1] rather than OpenGL [-1,1]
 add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
 add_compile_definitions(GLM_FORCE_LEFT_HANDED)
-# add_compile_definitions(VMA_IMPLEMENTATION)
+add_compile_definitions(GLM_FORCE_RADIANS)
 
 if (APPLE)
   set_target_properties(HelloVulkan PROPERTIES

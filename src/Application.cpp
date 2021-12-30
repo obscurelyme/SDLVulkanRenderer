@@ -7,6 +7,7 @@
 
 #include "Camera.hpp"
 #include "Triangle.hpp"
+#include "VkImGui.hpp"
 #include "VulkanShaderManager.hpp"
 
 Application::Application(std::string name, int windowWidth, int windowHeight) :
@@ -17,11 +18,13 @@ Application::Application(std::string name, int windowWidth, int windowHeight) :
 
   window = SDL_CreateWindow(appName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowWidth,
                             windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
+  Camera::CreateMainCamera(windowWidth, windowHeight);
   renderer = new Vulkan(appName, window);
-  Camera::MainCamera();
+  VulkanImGui::Init(window, renderer);
 }
 
 Application::~Application() {
+  VulkanImGui::Destroy();
   delete renderer;
   SDL_DestroyWindow(window);
   SDL_Quit();
@@ -30,6 +33,11 @@ Application::~Application() {
 void Application::Run() {
   while (!quit) {
     while (SDL_PollEvent(&event)) {
+      // Handle ImGui events first...
+
+      ImGui_ImplSDL2_ProcessEvent(&event);
+      // Custom events next...
+
       if (event.type == SDL_QUIT) {
         quit = true;
       }
@@ -43,6 +51,12 @@ void Application::Run() {
         SDLKeyboardEventManager::HandleKeyboardEvent(event.key);
       }
     }
+
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplSDL2_NewFrame(window);
+    ImGui::NewFrame();
+
+    SDLKeyboardEventManager::UpdateElements();
 
     renderer->Draw2();
 

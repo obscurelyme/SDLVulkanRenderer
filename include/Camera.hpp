@@ -1,9 +1,11 @@
 #ifndef _coffeemaker_camera_hpp
 #define _coffeemaker_camera_hpp
 
+#include <functional>
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <memory>
+#include <vector>
 
 #include "KeyboardEvent.hpp"
 
@@ -14,6 +16,7 @@ class Camera : public SDLKeyboardEventListener {
   explicit Camera(CameraType t);
   ~Camera();
 
+  static void CreateMainCamera(uint32_t extentWidth, uint32_t extentHeight);
   static std::shared_ptr<Camera> MainCamera();
   void SetCameraType(CameraType t);
 
@@ -21,8 +24,16 @@ class Camera : public SDLKeyboardEventListener {
 
   void OnKeyboardEvent(const SDL_KeyboardEvent& event);
 
+  void Update() override;
+
+  void OnCameraModeChange(std::function<void(CameraType)>);
+
   private:
+  void EmitCameraModeEvent();
+
   static std::shared_ptr<Camera> _instance;
+  static uint32_t width;
+  static uint32_t height;
 
   CameraType _type;
   glm::mat4 orthographicProj{1.0f};
@@ -31,6 +42,10 @@ class Camera : public SDLKeyboardEventListener {
   glm::vec3 position{0.0f, 0.0f, 2.0f};
   float _fov{70.0f};
   float _num{0.0f};
+  bool _ortho{false};
+  float scale{1.0f};
+
+  std::vector<std::function<void(CameraType)>> _listeners;
 };
 
 #endif

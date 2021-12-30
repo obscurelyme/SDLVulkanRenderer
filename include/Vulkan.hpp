@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.h>
 
 #include <array>
+#include <functional>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -21,6 +22,11 @@
 #include "VulkanRenderPass.hpp"
 #include "VulkanSwapchain.hpp"
 #include "VulkanSync.hpp"
+
+struct UploadContext {
+  VkFence _uploadFence;
+  VkCommandPool _commandPool;
+};
 
 class Vulkan {
   public:
@@ -66,6 +72,8 @@ class Vulkan {
     return VK_FALSE;
   }
 
+  void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function);
+
   private:
   void CleanupSwapChain();
   void InitVulkan();
@@ -92,15 +100,19 @@ class Vulkan {
   void CreateCommands();
   void CreateSemaphores();
   void CreateMemoryAllocator();
-
   void CreateSurface();
+  void InitSyncStructures();
 
   void ShowError(const std::string &title, const std::string &message);
 
   bool enableValidationLayers;
   bool vulkanInstanceInitialized;
   SDL_Window *windowHandle;
+
+  public:
   VkInstance vulkanInstance;
+
+  private:
   VkApplicationInfo vulkanAppInfo;
   VkInstanceCreateInfo vulkanInstanceCreateInfo;
 
@@ -129,6 +141,7 @@ class Vulkan {
   static int MAX_FRAMES_IN_FLIGHT;
   bool framebufferResized;
 
+  public:
   VmaAllocator allocator;
   VulkanPhysicalDevice physicalDevice{nullptr};
   VulkanLogicalDevice logicalDevice;
@@ -141,6 +154,9 @@ class Vulkan {
 
   Triangle *triangle;
   Suzanne *suzanne;
+
+  // NOTE: use for immediate submit command steps
+  UploadContext _uploadContext;
 };
 
 #endif

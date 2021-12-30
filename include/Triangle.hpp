@@ -1,9 +1,9 @@
 #ifndef _triangle_hpp
 #define _triangle_hpp
 
+#include <fmt/core.h>
 #include <vulkan/vulkan.h>
 
-// #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtx/transform.hpp>
 #include <iostream>
 
@@ -13,6 +13,7 @@
 #include "VulkanMesh.hpp"
 #include "VulkanShaderManager.hpp"
 #include "VulkanSwapchain.hpp"
+#include "imgui.h"
 
 class Triangle : public SDLKeyboardEventListener {
   public:
@@ -28,6 +29,7 @@ class Triangle : public SDLKeyboardEventListener {
     _pipeline = MakeRGBTrianglePipeline();
     _redTrianglePipeline = MakeRedTrianglePipeline();
     _meshPipeline = MakeMeshPipeline();
+    _mainCamera->OnCameraModeChange([&](CameraType t) { _orthoMode = t == CameraType::Orthographic; });
   }
 
   ~Triangle() {
@@ -41,6 +43,14 @@ class Triangle : public SDLKeyboardEventListener {
     vkDestroyPipelineLayout(logicalDevice, _meshPipelineBuilder._pipelineLayout, nullptr);
   }
 
+  void Update() override {
+    ImGui::Begin("Triangle");
+    ImGui::Text("Position: (%f,%f,%f)", 0.0f, 0.0f, 0.0f);
+    ImGui::InputFloat("xPos", &position.x, 1.0f, 5.0f);
+    ImGui::InputFloat("yPos", &position.y, 1.0f, 5.0f);
+    ImGui::End();
+  }
+
   void Draw() {
     if (_useRedPipeline) {
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _redTrianglePipeline);
@@ -52,13 +62,13 @@ class Triangle : public SDLKeyboardEventListener {
 
       glm::mat4 model = glm::mat4{1.0f};
       if (_orthoMode) {
-        model = glm::translate(model, glm::vec3{400.0f, 300.0f, 0.0f});  // vec3 is the position of this object
-        model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
-        model = glm::scale(model, glm::vec3{100, 100, 100});
+        model = glm::translate(model, position);  // vec3 is the position of this object
+        // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
+        // model = glm::scale(model, glm::vec3{10, 10, 10});
       } else {
-        model = glm::translate(model, glm::vec3{0.0f, 0.0f, 0.0f});  // vec3 is the position of this object
-        model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
-        model = glm::scale(model, glm::vec3{.1, .1, .1});
+        model = glm::translate(model, position);  // vec3 is the position of this object
+        // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
+        // model = glm::scale(model, glm::vec3{.1, .1, .1});
       }
 
       /**
@@ -87,12 +97,19 @@ class Triangle : public SDLKeyboardEventListener {
       }
     }
 
-    if (event.keysym.scancode == SDL_SCANCODE_P && event.type == SDL_KEYUP) {
-      _orthoMode = false;
+    // if (event.keysym.scancode == SDL_SCANCODE_P && event.type == SDL_KEYUP) {
+    //   _orthoMode = false;
+    // }
+
+    // if (event.keysym.scancode == SDL_SCANCODE_O && event.type == SDL_KEYUP) {
+    //   _orthoMode = true;
+    // }
+    if (event.keysym.scancode == SDL_SCANCODE_RIGHT && event.type == SDL_KEYDOWN) {
+      position += glm::vec3{1.0f, 0.0f, 0.0f};
     }
 
-    if (event.keysym.scancode == SDL_SCANCODE_O && event.type == SDL_KEYUP) {
-      _orthoMode = true;
+    if (event.keysym.scancode == SDL_SCANCODE_LEFT && event.type == SDL_KEYDOWN) {
+      position += glm::vec3{-1.0f, 0.0f, 0.0f};
     }
   }
 
@@ -100,12 +117,12 @@ class Triangle : public SDLKeyboardEventListener {
   void CreateTriangleMesh() {
     mesh.vertices.resize(3);
     // Set vertex positions
-    mesh.vertices[0].position = {1.0f, 1.0f, 0.0f};
-    mesh.vertices[1].position = {0.0f, -1.0f, 0.0f};
-    mesh.vertices[2].position = {-1.0f, 1.0f, 0.0f};
+    mesh.vertices[0].position = {0.5f, 0.5f, 0.0f};
+    mesh.vertices[1].position = {0.0f, -0.5f, 0.0f};
+    mesh.vertices[2].position = {-0.5f, 0.5f, 0.0f};
     // Set all vertices to green color
     mesh.vertices[0].color = {0.0f, 1.0f, 0.0f};
-    mesh.vertices[1].color = {0.0f, 1.0f, 0.0f};
+    mesh.vertices[1].color = {1.0f, 0.0f, 0.0f};
     mesh.vertices[2].color = {0.0f, 1.0f, 0.0f};
     // Ignore vertex normals for now
     UploadMesh();
@@ -113,17 +130,8 @@ class Triangle : public SDLKeyboardEventListener {
 
   void UploadMesh() {
     // Allocate the Vertex Buffer
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    // Total size, in bytes, of the buffer we wish to allocate
-    bufferInfo.size = mesh.vertices.size() * sizeof(Vertex);
-    // Specifies that this buffer is going to be used as a vertex buffer.
-    bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-    VmaAllocationCreateInfo vmaAllocInfo{};
-    vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-    vmaCreateBuffer(allocator, &bufferInfo, &vmaAllocInfo, &mesh.vertexBuffer.buffer, &mesh.vertexBuffer.allocation,
-                    nullptr);
+    mesh.vertexBuffer = CreateBuffer(mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                     VMA_MEMORY_USAGE_CPU_TO_GPU);
 
     void* data;
     vmaMapMemory(allocator, mesh.vertexBuffer.allocation, &data);
@@ -143,6 +151,7 @@ class Triangle : public SDLKeyboardEventListener {
         .VertexInputInfo()
         .ColorBlendAttachState()
         .PipelineLayout(logicalDevice)
+        .DepthStencil()
         .Build(logicalDevice, renderPass);
   }
 
@@ -158,6 +167,7 @@ class Triangle : public SDLKeyboardEventListener {
                   static_cast<float>(swapChain->GetSurfaceExtent().height), 0.0f, 1.0f)
         .VertexInputInfo()
         .ColorBlendAttachState()
+        .DepthStencil()
         .PipelineLayout(logicalDevice)
         .Build(logicalDevice, renderPass);
   }
@@ -177,6 +187,7 @@ class Triangle : public SDLKeyboardEventListener {
         .VertexInputInfo(Vertex::Description())
         .ColorBlendAttachState()
         .PipelineLayout(logicalDevice, pushConstants)
+        .DepthStencil()
         .Build(logicalDevice, renderPass);
   }
 
@@ -199,6 +210,8 @@ class Triangle : public SDLKeyboardEventListener {
   int _framenumber{0};
   bool _orthoMode{false};
   std::shared_ptr<Camera> _mainCamera;
+  glm::vec3 position{0.0f, 0.0f, 0.0f};
+  float rotation;
 };
 
 #endif

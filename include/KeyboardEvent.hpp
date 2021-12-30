@@ -21,6 +21,7 @@ class SDLKeyboardEventListener {
   }
 
   public:
+  virtual void Update() = 0;
   virtual void OnKeyboardEvent(const SDL_KeyboardEvent& event) = 0;
 
   friend class SDLKeyboardEventManager;
@@ -47,6 +48,16 @@ class SDLKeyboardEventListener {
       }
     }
   }
+
+  static void UpdateElements() {
+    size_t currentSize = _listeners.size();
+
+    for (size_t i = 0; i < currentSize; i++) {
+      if (_listeners[i] != nullptr) {
+        _listeners[i]->Update();
+      }
+    }
+  }
 };
 
 class SDLKeyboardEventManager {
@@ -56,6 +67,8 @@ class SDLKeyboardEventManager {
     ClearUserEvents();
   }
   static void ClearUserEvents() { SDLKeyboardEventListener::RemoveStaleListeners(); }
+
+  static void UpdateElements() { SDLKeyboardEventListener::UpdateElements(); }
 
   private:
   std::vector<SDLKeyboardEventListener*> _listeners;
