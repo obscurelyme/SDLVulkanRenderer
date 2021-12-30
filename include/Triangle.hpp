@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "Camera.hpp"
+#include "Editor/ImGuiEditorObject.hpp"
 #include "KeyboardEvent.hpp"
 #include "VulkanGraphicsPipeline.hpp"
 #include "VulkanMesh.hpp"
@@ -15,7 +16,7 @@
 #include "VulkanSwapchain.hpp"
 #include "imgui.h"
 
-class Triangle : public SDLKeyboardEventListener {
+class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::ImGuiEditorObject {
   public:
   Triangle(VmaAllocator alloc, VkDevice device, VkRenderPass renderPass, VkCommandBuffer command,
            VulkanSwapchain* swapChain) :
@@ -43,7 +44,7 @@ class Triangle : public SDLKeyboardEventListener {
     vkDestroyPipelineLayout(logicalDevice, _meshPipelineBuilder._pipelineLayout, nullptr);
   }
 
-  void Update() override {
+  void EditorUpdate() override {
     ImGui::Begin("Triangle");
     ImGui::Text("Position: (%f,%f,%f)", 0.0f, 0.0f, 0.0f);
     ImGui::InputFloat("xPos", &position.x, 1.0f, 5.0f);

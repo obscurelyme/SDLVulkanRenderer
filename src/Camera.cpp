@@ -54,7 +54,7 @@ glm::mat4 Camera::ScreenSpaceMatrix(glm::mat4 model) {
   return orthographicProj * view * model;
 }
 
-void Camera::Update() {
+void Camera::EditorUpdate() {
   ImGui::Begin("Camera");
 
   ImGui::InputFloat("xPos", &position.x, 1.0f, 5.0f, "%.0f");

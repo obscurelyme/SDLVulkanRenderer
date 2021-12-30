@@ -15,6 +15,8 @@ find_package(tinyobjloader CONFIG REQUIRED)
 find_path(STB_INCLUDE_DIRS "stb.h")
 find_package(imgui CONFIG REQUIRED)
 
+set(EDITOR_SRC src/Editor/ImGuiEditorObject.cpp)
+
 add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/main.cpp
   src/Vulkan.cpp
@@ -30,6 +32,7 @@ add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/VulkanAllocator.cpp
   src/VkImGui.cpp
   src/VkInitializers.cpp
+  ${EDITOR_SRC}
 )
 target_include_directories(HelloVulkan PRIVATE include)
 target_include_directories(HelloVulkan PRIVATE ${STB_INCLUDE_DIRS})

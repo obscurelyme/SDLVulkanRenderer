@@ -52,11 +52,8 @@ void Application::Run() {
       }
     }
 
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplSDL2_NewFrame(window);
-    ImGui::NewFrame();
-
-    SDLKeyboardEventManager::UpdateElements();
+    VulkanImGui::NewFrame();
+    VulkanImGui::Update();
 
     renderer->Draw2();
 

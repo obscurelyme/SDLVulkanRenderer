@@ -23,7 +23,6 @@ class Suzanne : public SDLKeyboardEventListener {
 
   void Draw();
   void OnKeyboardEvent(const SDL_KeyboardEvent& event);
-  void Update() override {}
 
   private:
   void UploadMesh();

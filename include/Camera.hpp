@@ -7,11 +7,12 @@
 #include <memory>
 #include <vector>
 
+#include "Editor/ImGuiEditorObject.hpp"
 #include "KeyboardEvent.hpp"
 
 enum class CameraType { Orthographic, Perspective };
 
-class Camera : public SDLKeyboardEventListener {
+class Camera : public SDLKeyboardEventListener, public CoffeeMaker::Editor::ImGuiEditorObject {
   public:
   explicit Camera(CameraType t);
   ~Camera();
@@ -24,7 +25,7 @@ class Camera : public SDLKeyboardEventListener {
 
   void OnKeyboardEvent(const SDL_KeyboardEvent& event);
 
-  void Update() override;
+  void EditorUpdate() override;
 
   void OnCameraModeChange(std::function<void(CameraType)>);
 

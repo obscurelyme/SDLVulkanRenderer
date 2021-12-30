@@ -16,6 +16,8 @@
 
 int Vulkan::MAX_FRAMES_IN_FLIGHT = 2;
 
+Vulkan *Vulkan::_mainRenderer = nullptr;
+
 Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
     enableValidationLayers(true),
     vulkanInstanceInitialized(false),
@@ -40,6 +42,7 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateCommands();
   CreateSemaphores();
   InitSyncStructures();
+  _mainRenderer = this;
   triangle = new Triangle(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
   // suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
@@ -68,6 +71,8 @@ Vulkan::~Vulkan() {
     vkDestroyInstance(vulkanInstance, nullptr);
   }
 }
+
+Vulkan *Vulkan::GetRenderer() { return _mainRenderer; }
 
 void Vulkan::CleanupSwapChain() {
   framebuffer.ClearFramebufferHandles();

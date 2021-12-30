@@ -10,12 +10,17 @@
 #include <iostream>
 #include <vector>
 
+#include "Editor/ImGuiEditorObject.hpp"
 #include "Vulkan.hpp"
 
 class VulkanImGui {
   public:
-  static void Init(SDL_Window* window, Vulkan* renderer) {
+  static void Init(SDL_Window* mainWindow, Vulkan* mainRenderer) {
+    window = mainWindow;
+    renderer = mainRenderer;
+
     logicalDevice = renderer->logicalDevice.Handle;
+
     /**
      * STEP #1: create descriptor pool for IMGUI
      * the size of the pool is very oversize, but it's copied from imgui demo itself.
@@ -77,8 +82,18 @@ class VulkanImGui {
     std::cout << "=============== IMGUI DESTROY ============================" << std::endl;
   }
 
+  static void NewFrame() {
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplSDL2_NewFrame(window);
+    ImGui::NewFrame();
+  }
+
+  static void Update() { CoffeeMaker::Editor::ImGuiEditorObjectManager::ImGuiEditorUpdate(); }
+
   static VkDescriptorPool imguiPool;
   static VkDevice logicalDevice;
+  static SDL_Window* window;
+  static Vulkan* renderer;
 };
 
 #endif

@@ -9,6 +9,7 @@
 #include <array>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -74,7 +75,17 @@ class Vulkan {
 
   void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function);
 
+  /**
+   * Returns the main renderer for Vulkan.
+   */
+  static Vulkan *GetRenderer();
+
   private:
+  /**
+   * The one and (typically) only instance of Vulkan Renderer
+   */
+  static Vulkan *_mainRenderer;
+
   void CleanupSwapChain();
   void InitVulkan();
   bool CheckValidationLayerSupport();
