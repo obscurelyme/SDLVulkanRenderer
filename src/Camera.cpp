@@ -14,7 +14,7 @@ std::shared_ptr<Camera> Camera::MainCamera() {
 }
 
 Camera::Camera(CameraType t) : _type(t) {
-  orthographicProj = glm::ortho(-400.0f, 400.0f, 300.0f, -300.0f, -200.0f, 200.0f);
+  orthographicProj = glm::ortho(-400.0f, 400.0f, 300.0f, -300.0f, -1000.0f, 1000.0f);
   perspectiveProj = glm::perspective(glm::radians(_fov), 800.0f / 600.0f, 0.1f, 200.0f);
   perspectiveProj[1][1] *= -1;
   view = glm::translate(glm::mat4{1.0f}, position);
@@ -53,13 +53,13 @@ void Camera::OnKeyboardEvent(const SDL_KeyboardEvent& event) {
   }
 
   if (event.keysym.scancode == SDL_SCANCODE_UP && event.type == SDL_KEYDOWN) {
-    position.z += 0.05f;
+    position.z -= 0.05f;
     view = glm::translate(glm::mat4{1.0f}, position);
     std::cout << "Camera Position: " << fmt::format("({},{},{})", position.x, position.y, position.z) << std::endl;
   }
 
   if (event.keysym.scancode == SDL_SCANCODE_DOWN && event.type == SDL_KEYDOWN) {
-    position.z -= 0.05f;
+    position.z += 0.05f;
     view = glm::translate(glm::mat4{1.0f}, position);
     std::cout << "Camera Position: " << fmt::format("({},{},{})", position.x, position.y, position.z) << std::endl;
   }
@@ -89,7 +89,7 @@ void Camera::OnKeyboardEvent(const SDL_KeyboardEvent& event) {
   }
 
   if (event.keysym.scancode == SDL_SCANCODE_R && event.type == SDL_KEYUP) {
-    position = glm::vec3{0.0f, 0.0f, -2.0f};
+    position = glm::vec3{0.0f, 0.0f, 2.0f};
     view = glm::translate(glm::mat4{1.0f}, position);
     std::cout << "Camera Position Reset: " << fmt::format("({},{},{})", position.x, position.y, position.z)
               << std::endl;

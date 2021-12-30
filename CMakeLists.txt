@@ -46,7 +46,8 @@ endif()
 
 add_compile_definitions(VK_ENABLE_BETA_EXTENSIONS)
 # Needed for Vulkan Z-range [0,1] rather than OpenGL [-1,1]
-add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE) 
+add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
+add_compile_definitions(GLM_FORCE_LEFT_HANDED)
 # add_compile_definitions(VMA_IMPLEMENTATION)
 
 if (APPLE)

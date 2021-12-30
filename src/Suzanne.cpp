@@ -42,11 +42,11 @@ void Suzanne::Draw() {
   vkCmdBindVertexBuffers(cmd, 0, 1, &mesh.vertexBuffer.buffer, &offset);
   glm::mat4 model = glm::mat4{1.0f};
   if (_orthoMode) {
-    model = glm::translate(model, glm::vec3{0.0f, 0.0f, 0.0f});  // vec3 is the position of this object
+    model = glm::translate(model, glm::vec3{0.0f, 1.0f, 0.0f});  // vec3 is the position of this object
     // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
     // model = glm::scale(model, glm::vec3{100, 100, 100});
   } else {
-    model = glm::translate(model, glm::vec3{0.0f, 0.0f, 0.0f});  // vec3 is the position of this object
+    model = glm::translate(model, glm::vec3{0.0f, 1.0f, 0.0f});  // vec3 is the position of this object
     // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
     // model = glm::scale(model, glm::vec3{.1, .1, .1});
   }
