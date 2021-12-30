@@ -35,13 +35,11 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateMemoryAllocator();
   CreateSwapChain();
   CreateRenderPass();
-  CreateGraphicsPipeline();
   CreateFramebuffer();
   CreateCommands();
-  CreateCommandPool();
-  CreateCommandBuffers();
   CreateSemaphores();
-  triangle = new Triangle(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  // triangle = new Triangle(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
 
 Vulkan::~Vulkan() {
@@ -52,16 +50,17 @@ Vulkan::~Vulkan() {
   }
 
   CleanupSwapChain();
-  delete triangle;
+  // delete triangle;
+  delete suzanne;
 
-  for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    vkDestroySemaphore(logicalDevice.Handle, renderFinishedSemaphores[i], nullptr);
-    vkDestroySemaphore(logicalDevice.Handle, imageAvailableSemaphores[i], nullptr);
-    vkDestroyFence(logicalDevice.Handle, inFlightFences[i], nullptr);
-  }
+  // for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+  //   vkDestroySemaphore(logicalDevice.Handle, renderFinishedSemaphores[i], nullptr);
+  //   vkDestroySemaphore(logicalDevice.Handle, imageAvailableSemaphores[i], nullptr);
+  //   vkDestroyFence(logicalDevice.Handle, inFlightFences[i], nullptr);
+  // }
   syncUtils.DestroyHandles();
   commands.DestroyPool();
-  vkDestroyCommandPool(logicalDevice.Handle, commandPool, nullptr);
+  // vkDestroyCommandPool(logicalDevice.Handle, commandPool, nullptr);
   VulkanShaderManager::CleanAllShaders();
   vmaDestroyAllocator(allocator);
   logicalDevice.DestroyHandle();
@@ -74,10 +73,10 @@ Vulkan::~Vulkan() {
 void Vulkan::CleanupSwapChain() {
   framebuffer.ClearFramebufferHandles();
   commands.FreeCommandBuffers();
-  vkFreeCommandBuffers(logicalDevice.Handle, commandPool, static_cast<uint32_t>(commandBuffers.size()),
-                       commandBuffers.data());
-  vkDestroyPipeline(logicalDevice.Handle, graphicsPipeline, nullptr);
-  vkDestroyPipelineLayout(logicalDevice.Handle, pipelineLayout, nullptr);
+  // vkFreeCommandBuffers(logicalDevice.Handle, commandPool, static_cast<uint32_t>(commandBuffers.size()),
+  //                      commandBuffers.data());
+  // vkDestroyPipeline(logicalDevice.Handle, graphicsPipeline, nullptr);
+  // vkDestroyPipelineLayout(logicalDevice.Handle, pipelineLayout, nullptr);
   renderPass.DestroyHandle();
   swapChain.DestroyHandle();
 }
@@ -88,80 +87,10 @@ void Vulkan::RecreateSwapChain() {
   vkDeviceWaitIdle(logicalDevice.Handle);
 
   CleanupSwapChain();
-  vkDestroyCommandPool(logicalDevice.Handle, commandPool, nullptr);
 
   CreateSwapChain();
   CreateRenderPass();
-  CreateGraphicsPipeline();
   CreateFramebuffer();
-  CreateCommandPool();
-  CreateCommandBuffers();
-}
-
-void Vulkan::Draw() {
-  vkWaitForFences(logicalDevice.Handle, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
-
-  uint32_t imageIndex;
-  VkResult nxtImageResult = vkAcquireNextImageKHR(logicalDevice.Handle, swapChain.Handle, UINT64_MAX,
-                                                  imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-
-  if (nxtImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
-    RecreateSwapChain();
-    return;
-  } else if (nxtImageResult != VK_SUCCESS && nxtImageResult != VK_SUBOPTIMAL_KHR) {
-    ShowError("Vulkan Draw",
-              fmt::format("Vulkan Draw error occured, could not acquire next image.\n[{}]", nxtImageResult));
-  }
-
-  if (nxtImageResult != VK_SUCCESS) {
-    ShowError("Vulkan Draw",
-              fmt::format("Vulkan Draw error occured, could not acquire next image.\n[{}]", nxtImageResult));
-  }
-
-  if (imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-    vkWaitForFences(logicalDevice.Handle, 1, &imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
-  }
-  imagesInFlight[imageIndex] = inFlightFences[currentFrame];
-
-  VkSubmitInfo submitInfo{};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-  VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
-  VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-  submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pWaitSemaphores = waitSemaphores;
-  submitInfo.pWaitDstStageMask = waitStages;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
-
-  VkSemaphore signalSemaphores[] = {renderFinishedSemaphores[currentFrame]};
-  submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = signalSemaphores;
-
-  vkResetFences(logicalDevice.Handle, 1, &inFlightFences[currentFrame]);
-  VkResult result = vkQueueSubmit(logicalDevice.GraphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
-  if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebufferResized) {
-    std::cerr << "Recreating swap chain..." << std::endl;
-    framebufferResized = false;
-    RecreateSwapChain();
-  } else if (result != VK_SUCCESS) {
-    ShowError("Vulkan Queue Submit", fmt::format("Failed to submit draw command to buffer: [{}]", result));
-  }
-
-  VkPresentInfoKHR presentInfo{};
-  presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-  presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = signalSemaphores;
-
-  std::array<VkSwapchainKHR, 1> swapChains{swapChain.Handle};
-  presentInfo.swapchainCount = 1;
-  presentInfo.pSwapchains = swapChains.data();
-  presentInfo.pImageIndices = &imageIndex;
-  presentInfo.pResults = nullptr;  // Optional
-
-  vkQueuePresentKHR(logicalDevice.PresentQueue, &presentInfo);
-
-  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void Vulkan::Draw2() {
@@ -183,7 +112,8 @@ void Vulkan::Draw2() {
 
   commands.BeginRecording(imageIndex);
   // vkCmd* stuff...
-  triangle->Draw();
+  // triangle->Draw();
+  suzanne->Draw();
   commands.EndRecording();
 
   VkSemaphore presentSemaRef = syncUtils.PresentSemaphore();
@@ -487,38 +417,13 @@ void Vulkan::CreateSwapChain() {
   swapChain.ChooseSwapExtent();
   swapChain.Create();
   swapChain.CreateImageViews();
-}
-
-void Vulkan::CreateGraphicsPipeline() {
-  auto fragShaderCode = VulkanShaderManager::ReadShaderFile("frag.spv");
-  auto vertShaderCode = VulkanShaderManager::ReadShaderFile("vert.spv");
-
-  VkShaderModule fragShaderModule = VulkanShaderManager::CreateShaderModule(logicalDevice.Handle, fragShaderCode);
-  VkShaderModule vertShaderModule = VulkanShaderManager::CreateShaderModule(logicalDevice.Handle, vertShaderCode);
-
-  VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
-  vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-  vertShaderStageInfo.module = vertShaderModule;
-  vertShaderStageInfo.pName = "main";
-
-  VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-  fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-  fragShaderStageInfo.module = fragShaderModule;
-  fragShaderStageInfo.pName = "main";
-
-  std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{vertShaderStageInfo, fragShaderStageInfo};
-
-  SetupFixedFunctionsPipeline(shaderStages);
-
-  VulkanShaderManager::CleanupShaderModule(logicalDevice.Handle, fragShaderModule);
-  VulkanShaderManager::CleanupShaderModule(logicalDevice.Handle, vertShaderModule);
+  swapChain.CreateDepthImageView(allocator);
 }
 
 void Vulkan::CreateRenderPass() {
   renderPass.SetLogicalDevice(&logicalDevice);
   renderPass.SetSwapchain(&swapChain);
+  renderPass.SetDepthFormat(swapChain.GetDepthFormat());
   renderPass.Build();
 }
 
@@ -539,107 +444,9 @@ void Vulkan::CreateCommands() {
   commands.CreateCommandBuffers();
 }
 
-void Vulkan::CreateCommandPool() {
-  VulkanQueueFamilyIndices queueFamilyIndices = physicalDevice.QueueFamilies;
-
-  VkCommandPoolCreateInfo poolInfo{};
-  poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
-  poolInfo.flags = 0;  // Optional
-
-  VkResult result = vkCreateCommandPool(logicalDevice.Handle, &poolInfo, nullptr, &commandPool);
-  if (result != VK_SUCCESS) {
-    ShowError("Vulkan Command Pool", fmt::format("Unable to create command pool.\nVulkan Error Code: [{}]", result));
-  }
-}
-
-void Vulkan::CreateCommandBuffers() {
-  commandBuffers.resize(framebuffer.FramebufferHandles.size());
-  VkExtent2D swapChainExtent = swapChain.GetExtent();
-
-  VkCommandBufferAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.commandPool = commandPool;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
-
-  VkResult result = vkAllocateCommandBuffers(logicalDevice.Handle, &allocInfo, commandBuffers.data());
-  if (result != VK_SUCCESS) {
-    ShowError("Vulkan Command Buffers",
-              fmt::format("Unable to create command buffers.\nVulkan Error Code: [{}]", result));
-  }
-
-  for (size_t i = 0; i < commandBuffers.size(); i++) {
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;  // Optional
-    beginInfo.pInheritanceInfo = nullptr;                            // Optional
-
-    result = vkBeginCommandBuffer(commandBuffers[i], &beginInfo);
-
-    if (result != VK_SUCCESS) {
-      ShowError("Vulkan Command Buffers",
-                fmt::format("Unable to begin command buffers.\nVulkan Error Code: [{}]", result));
-    }
-
-    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = renderPass.Handle;
-    renderPassInfo.framebuffer = framebuffer.FramebufferHandles[i];
-    renderPassInfo.renderArea.offset = {0, 0};
-    renderPassInfo.renderArea.extent = swapChainExtent;
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
-
-    vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
-    vkCmdEndRenderPass(commandBuffers[i]);
-
-    result = vkEndCommandBuffer(commandBuffers[i]);
-    if (result != VK_SUCCESS) {
-      ShowError("Vulkan Command Buffers",
-                fmt::format("Unable to end command buffers.\nVulkan Error Code: [{}]", result));
-    }
-  }
-}
-
 void Vulkan::CreateSemaphores() {
   syncUtils.SetLogicalDevice(&logicalDevice);
   syncUtils.CreateSemaphores();
   syncUtils.CreateRenderFence();
   syncUtils.Build();
-
-  auto swapChainImages = swapChain.GetImages();
-
-  imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-  inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
-  imagesInFlight.resize(swapChainImages.size(), VK_NULL_HANDLE);
-
-  VkSemaphoreCreateInfo semaphoreInfo{};
-  semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-  VkFenceCreateInfo fenceInfo{};
-  fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-
-  for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-    VkResult imgAvailResult =
-        vkCreateSemaphore(logicalDevice.Handle, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]);
-    VkResult renderFinResult =
-        vkCreateSemaphore(logicalDevice.Handle, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]);
-
-    VkResult fenceResult = vkCreateFence(logicalDevice.Handle, &fenceInfo, nullptr, &inFlightFences[i]);
-
-    if (imgAvailResult != VK_SUCCESS || renderFinResult != VK_SUCCESS || fenceResult != VK_SUCCESS) {
-      ShowError("Vulkan Semaphore/Fences", fmt::format("Creationg of Vulkan Semaphores & Fences failed with the "
-                                                       "following error codes.\nImage Available Semaphore "
-                                                       "Result: {}\nRender Finished Semaphore Result: {}\nFence "
-                                                       "Result: [{}]",
-                                                       imgAvailResult, renderFinResult, fenceResult));
-    }
-  }
 }

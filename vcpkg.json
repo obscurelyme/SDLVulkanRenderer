@@ -4,6 +4,7 @@
   "dependencies": [
     "fmt",
     "glm",
+    "tinyobjloader",
     {
       "name": "sdl2",
       "default-features": false,

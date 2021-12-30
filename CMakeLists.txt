@@ -11,6 +11,7 @@ find_package(SDL2 CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(unofficial-vulkan-memory-allocator CONFIG REQUIRED)
 find_package(glm CONFIG REQUIRED)
+find_package(tinyobjloader CONFIG REQUIRED)
 
 add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/main.cpp
@@ -22,12 +23,22 @@ add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/Triangle.cpp
   src/VulkanMesh.cpp
   src/Camera.cpp
+  src/Suzanne.cpp
+  src/VkUtils.cpp
 )
 target_include_directories(HelloVulkan PRIVATE include)
 
 if (VULKAN_FOUND)
   message(STATUS "Found Vulkan... ${Vulkan_LIBRARIES}")
-  target_link_libraries(HelloVulkan PRIVATE ${Vulkan_LIBRARIES} glm::glm SDL2::SDL2 SDL2::SDL2main SDL2::SDL2-static fmt::fmt-header-only unofficial::vulkan-memory-allocator::vulkan-memory-allocator)
+  target_link_libraries(HelloVulkan PRIVATE ${Vulkan_LIBRARIES} 
+    glm::glm 
+    SDL2::SDL2 
+    SDL2::SDL2main 
+    SDL2::SDL2-static 
+    fmt::fmt-header-only 
+    unofficial::vulkan-memory-allocator::vulkan-memory-allocator 
+    tinyobjloader::tinyobjloader
+  )
   target_include_directories(HelloVulkan PUBLIC ${Vulkan_INCLUDE_DIRS})
 else()
   message(FATAL_ERROR "Unable to find VulkanSDK. Please confirm you have Vulkan properly set up for this environment.")

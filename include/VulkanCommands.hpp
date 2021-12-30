@@ -4,6 +4,7 @@
 #include <fmt/core.h>
 #include <vulkan/vulkan.h>
 
+#include <array>
 #include <cmath>
 #include <vector>
 
@@ -16,9 +17,13 @@
 
 class VulkanCommands {
   public:
-  VulkanCommands() : _commandBuffers({}), clearColor({}) {
+  VulkanCommands() : _commandBuffers({}), clearColor({}), depthClear({}) {
     // NOTE: default clear color is black
     clearColor.color = {0.0f, 0.0f, 0.0f, 1.0f};
+    depthClear.depthStencil.depth = 1.0f;
+
+    clearValues[0] = clearColor;
+    clearValues[1] = depthClear;
   }
 
   ~VulkanCommands() {
@@ -99,8 +104,8 @@ class VulkanCommands {
     renderPassInfo.framebuffer = _framebuffer->FramebufferHandles[swapchainImageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = _swapChain->GetExtent();
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
+    renderPassInfo.clearValueCount = clearValues.size();
+    renderPassInfo.pClearValues = clearValues.data();
 
     vkCmdBeginRenderPass(_mainCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
   }
@@ -132,6 +137,8 @@ class VulkanCommands {
 
   VkCommandBuffer _mainCommandBuffer{VK_NULL_HANDLE};
   VkClearValue clearColor;
+  VkClearValue depthClear;
+  std::array<VkClearValue, 2> clearValues;
 };
 
 #endif

@@ -38,12 +38,12 @@ class VulkanFramebuffer {
     FramebufferHandles.resize(swapChainImageViews.size());
 
     for (size_t i = 0; i < swapChainImageViews.size(); i++) {
-      std::array<VkImageView, 1> attachments{swapChainImageViews[i]};
+      std::array<VkImageView, 2> attachments{swapChainImageViews[i], _swapChain->GetDepthImageView()};
 
       VkFramebufferCreateInfo framebufferInfo{};
       framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
       framebufferInfo.renderPass = _renderPass->Handle;
-      framebufferInfo.attachmentCount = 1;
+      framebufferInfo.attachmentCount = attachments.size();
       framebufferInfo.pAttachments = attachments.data();
       framebufferInfo.width = swapChainExtent.width;
       framebufferInfo.height = swapChainExtent.height;

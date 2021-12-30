@@ -14,18 +14,6 @@
 #include "VulkanShaderManager.hpp"
 #include "VulkanSwapchain.hpp"
 
-class Drawable {
-  public:
-  Drawable() = default;
-  ~Drawable() = default;
-
-  virtual void Draw() = 0;
-
-  protected:
-  VkDevice logicalDevice{VK_NULL_HANDLE};
-  VkRenderPass renderPass{VK_NULL_HANDLE};
-};
-
 class Triangle : public SDLKeyboardEventListener {
   public:
   Triangle(VmaAllocator alloc, VkDevice device, VkRenderPass renderPass, VkCommandBuffer command,

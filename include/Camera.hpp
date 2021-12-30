@@ -30,6 +30,8 @@ class Camera : public SDLKeyboardEventListener {
   glm::mat4 perspectiveProj{1.0f};
   glm::mat4 view{1.0f};
   glm::vec3 position{0.0f, 0.0f, -2.0f};
+  float _fov{70.0f};
+  float _num{0.0f};
 };
 
 #endif

@@ -7,21 +7,8 @@
 #include <vector>
 
 #include "SimpleMessageBox.hpp"
+#include "VkUtils.hpp"
 #include "VulkanMesh.hpp"
-
-// VkBuffer CreateVertexBuffer(VkDevice device, const std::vector<float>& vertices) {
-//   VkBuffer buffer;
-//   VkBufferCreateInfo info{};
-
-//   info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-//   info.size = sizeof(vertices[0]) * vertices.size();
-//   info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-//   info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-//   vkCreateBuffer(device, &info, nullptr, &buffer);
-
-//   return buffer;
-// }
 
 /**
  * @brief Builder class for VkPipeline structs
@@ -37,6 +24,7 @@ class PipelineBuilder {
   VkPipelineColorBlendAttachmentState _colorBlendAttachment;
   VkPipelineMultisampleStateCreateInfo _multisampling;
   VkPipelineLayout _pipelineLayout;
+  VkPipelineDepthStencilStateCreateInfo _depthStencil;
 
   /**
    * @brief Inserts a shader module into the render pipeline
@@ -251,6 +239,11 @@ class PipelineBuilder {
     return *this;
   }
 
+  PipelineBuilder& DepthStencil() {
+    _depthStencil = CreateDepthStencilCreateInfo(true, true, VK_COMPARE_OP_LESS_OR_EQUAL);
+    return *this;
+  }
+
   auto Build(VkDevice device, VkRenderPass renderPass) -> VkPipeline {
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -282,7 +275,7 @@ class PipelineBuilder {
     pipelineInfo.pViewportState = &viewportState;
     pipelineInfo.pRasterizationState = &_rasterizer;
     pipelineInfo.pMultisampleState = &_multisampling;
-    pipelineInfo.pDepthStencilState = nullptr;  // Optional
+    pipelineInfo.pDepthStencilState = &_depthStencil;  // Optional
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = nullptr;  // Optional
     pipelineInfo.layout = _pipelineLayout;

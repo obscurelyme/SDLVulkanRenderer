@@ -16,4 +16,9 @@ struct AllocatedBuffer {
   VmaAllocation allocation;
 };
 
+struct AllocatedImage {
+  VkImage _image;
+  VmaAllocation _allocation;
+};
+
 #endif

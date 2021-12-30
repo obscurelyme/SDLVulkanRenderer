@@ -7,6 +7,8 @@
 // #include "glm/mat4x4.hpp"
 // #include "glm/vec3.hpp"
 // #include "glm/vec4.hpp"
+#include <string>
+
 #include "glm/glm.hpp"
 
 struct VertexInputDescription {
@@ -32,6 +34,8 @@ struct Vertex {
 struct Mesh {
   std::vector<Vertex> vertices;
   AllocatedBuffer vertexBuffer;
+
+  void LoadObj(const std::string& filename);
 };
 
 struct MeshPushConstants {
