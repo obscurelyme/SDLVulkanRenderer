@@ -133,11 +133,8 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
     // Allocate the Vertex Buffer
     mesh.vertexBuffer = CreateBuffer(mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                      VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-    void* data;
-    vmaMapMemory(allocator, mesh.vertexBuffer.allocation, &data);
-    memcpy(data, mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
-    vmaUnmapMemory(allocator, mesh.vertexBuffer.allocation);
+    // Map memory to GPU
+    MapMemory(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex), mesh.vertexBuffer.allocation);
   }
 
   VkPipeline MakeRGBTrianglePipeline() {

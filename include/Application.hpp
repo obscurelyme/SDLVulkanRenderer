@@ -14,11 +14,12 @@ class Application {
   void Run();
 
   private:
-  std::string appName;
-  SDL_Window *window;
-  Vulkan *renderer;
-  SDL_Event event;
-  bool quit;
+  std::string appName{"Application"};
+  SDL_Window *window{nullptr};
+  SDL_Surface *icon{nullptr};
+  Vulkan *renderer{nullptr};
+  SDL_Event event{};
+  bool quit{false};
 };
 
 #endif

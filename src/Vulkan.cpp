@@ -286,7 +286,6 @@ void Vulkan::SetupValidationLayers() {
 
   VULKAN_LAYERS_COUNT = 1;
   VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_validation");
-  // VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_validation");
 }
 
 void Vulkan::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {

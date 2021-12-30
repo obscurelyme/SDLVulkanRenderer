@@ -27,4 +27,6 @@ Texture StbLoadImage(const std::string& filename);
 
 AllocatedBuffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
 
+void MapMemory(const void* pData, size_t size, VmaAllocation allocation);
+
 #endif

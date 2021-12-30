@@ -6,6 +6,7 @@
     "glm",
     "tinyobjloader",
     "stb",
+    "sdl2-image",
     {
       "name": "sdl2",
       "default-features": false,

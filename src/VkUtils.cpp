@@ -32,6 +32,13 @@ AllocatedBuffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemo
   return newBuffer;
 }
 
+void MapMemory(const void* pData, size_t size, VmaAllocation allocation) {
+  void* data;
+  vmaMapMemory(VulkanAllocator::allocator, allocation, &data);
+  memcpy(data, pData, size);
+  vmaUnmapMemory(VulkanAllocator::allocator, allocation);
+}
+
 VkImageCreateInfo CreateImageInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent) {
   VkImageCreateInfo info = {};
   info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -102,12 +109,7 @@ Texture StbLoadImage(const std::string& filename) {
   t.size = static_cast<VkDeviceSize>(width * height * 4);
 
   t.buffer = CreateBuffer(t.size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
-
-  void* data;
-  vmaMapMemory(VulkanAllocator::allocator, t.buffer.allocation, &data);
-  memcpy(data, pixels, t.size);
-  vmaUnmapMemory(VulkanAllocator::allocator, t.buffer.allocation);
-
+  MapMemory(pixels, t.size, t.buffer.allocation);
   stbi_image_free(pixels);
 
   return t;

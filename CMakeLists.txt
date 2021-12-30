@@ -14,6 +14,7 @@ find_package(glm CONFIG REQUIRED)
 find_package(tinyobjloader CONFIG REQUIRED)
 find_path(STB_INCLUDE_DIRS "stb.h")
 find_package(imgui CONFIG REQUIRED)
+find_package(sdl2-image CONFIG REQUIRED)
 
 set(EDITOR_SRC src/Editor/ImGuiEditorObject.cpp)
 
@@ -48,6 +49,7 @@ if (VULKAN_FOUND)
     unofficial::vulkan-memory-allocator::vulkan-memory-allocator 
     tinyobjloader::tinyobjloader
     imgui::imgui
+    SDL2::SDL2_image
   )
   target_include_directories(HelloVulkan PUBLIC ${Vulkan_INCLUDE_DIRS})
 else()
