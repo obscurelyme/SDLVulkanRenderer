@@ -68,7 +68,8 @@ void Camera::EditorUpdate() {
 
   ImGui::SliderFloat("field of view", &_fov, 0.0f, 360.0f, "%.0f");
   if (ImGui::Button("Set fov")) {
-    perspectiveProj = glm::perspective(glm::radians(_fov), 800.0f / 600.0f, 0.1f, 200.0f);
+    perspectiveProj =
+        glm::perspective(glm::radians(_fov), static_cast<float>(width) / static_cast<float>(height), 0.1f, 200.0f);
     // perspectiveProj[1][1] *= -1;
   }
 
