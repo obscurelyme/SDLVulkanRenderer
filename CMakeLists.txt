@@ -40,13 +40,13 @@ target_include_directories(HelloVulkan PRIVATE ${STB_INCLUDE_DIRS})
 
 if (VULKAN_FOUND)
   message(STATUS "Found Vulkan... ${Vulkan_LIBRARIES}")
-  target_link_libraries(HelloVulkan PRIVATE ${Vulkan_LIBRARIES} 
-    glm::glm 
-    SDL2::SDL2 
-    SDL2::SDL2main 
-    SDL2::SDL2-static 
-    fmt::fmt-header-only 
-    unofficial::vulkan-memory-allocator::vulkan-memory-allocator 
+  target_link_libraries(HelloVulkan PRIVATE ${Vulkan_LIBRARIES}
+    glm::glm
+    SDL2::SDL2
+    SDL2::SDL2main
+    SDL2::SDL2-static
+    fmt::fmt-header-only
+    unofficial::vulkan-memory-allocator::vulkan-memory-allocator
     tinyobjloader::tinyobjloader
     imgui::imgui
     SDL2::SDL2_image

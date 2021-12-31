@@ -9,6 +9,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <iostream>
+
 Texture::~Texture() { vmaDestroyBuffer(VulkanAllocator::allocator, buffer.buffer, buffer.allocation); }
 
 AllocatedBuffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage) {
@@ -19,6 +21,7 @@ AllocatedBuffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemo
 
   bufferInfo.size = allocSize;
   bufferInfo.usage = usage;
+  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   VmaAllocationCreateInfo vmaallocInfo = {};
   vmaallocInfo.usage = memoryUsage;
@@ -26,8 +29,13 @@ AllocatedBuffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemo
   AllocatedBuffer newBuffer;
 
   // allocate the buffer
-  vmaCreateBuffer(VulkanAllocator::allocator, &bufferInfo, &vmaallocInfo, &newBuffer.buffer, &newBuffer.allocation,
-                  nullptr);
+  VkResult r = vmaCreateBuffer(VulkanAllocator::allocator, &bufferInfo, &vmaallocInfo, &newBuffer.buffer,
+                               &newBuffer.allocation, nullptr);
+
+  if (r != VK_SUCCESS) {
+    std::cout << "Bind not successful" << std::endl;
+    abort();
+  }
 
   return newBuffer;
 }
@@ -41,6 +49,10 @@ void MapMemory(const void* pData, size_t size, VmaAllocation allocation) {
   vmaMapMemory(VulkanAllocator::allocator, allocation, &data);
   memcpy(data, pData, size);
   vmaUnmapMemory(VulkanAllocator::allocator, allocation);
+}
+
+void FlushMemory(VmaAllocation allocation, VkDeviceSize offset, VkDeviceSize size) {
+  vmaFlushAllocation(VulkanAllocator::allocator, allocation, offset, size);
 }
 
 VkImageCreateInfo CreateImageInfo(VkFormat format, VkImageUsageFlags usageFlags, VkExtent3D extent) {

@@ -387,10 +387,19 @@ bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
 
   fmt::print("Checking device: {}\n", device.ToString());
 
+#ifdef FORCE_INTEGRATED_GPU
+  bool result =
+      device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsIntegratedGPU();
+#else
   bool result = device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsDiscreteGPU();
+#endif
 
   if (result) {
     fmt::print("Using device: {}\n", device.Name());
+  }
+
+  for (auto e : device.SupportedExtensions) {
+    std::cout << e.extensionName << std::endl;
   }
 
   return result;
