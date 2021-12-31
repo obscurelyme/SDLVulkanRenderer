@@ -18,8 +18,11 @@ class Camera : public SDLKeyboardEventListener, public CoffeeMaker::Editor::ImGu
   ~Camera();
 
   static void CreateMainCamera(uint32_t extentWidth, uint32_t extentHeight);
+  static void SetMainCameraDimensions(uint32_t extentWidth, uint32_t extentHeight);
   static std::shared_ptr<Camera> MainCamera();
   void SetCameraType(CameraType t);
+
+  void SetCameraDimensions(uint32_t extentWidth, uint32_t extentHeight);
 
   glm::mat4 ScreenSpaceMatrix(glm::mat4 model);
 

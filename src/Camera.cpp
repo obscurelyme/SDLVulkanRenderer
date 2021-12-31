@@ -20,14 +20,19 @@ void Camera::CreateMainCamera(uint32_t extentWidth, uint32_t extentHeight) {
   }
 }
 
-Camera::Camera(CameraType t) : _type(t) {
+void Camera::SetMainCameraDimensions(uint32_t extentWidth, uint32_t extentHeight) {
+  _instance->SetCameraDimensions(extentWidth, extentHeight);
+}
+
+Camera::Camera(CameraType t) : _type(t) { SetCameraDimensions(width, height); }
+
+void Camera::SetCameraDimensions(uint32_t extentWidth, uint32_t extentHeight) {
+  width = extentWidth;
+  height = extentHeight;
   orthographicProj =
       glm::ortho(-1.0f * (width / 2.0f), (width / 2.0f), (height / 2.0f), -1.0f * (height / 2.0f), -1000.0f, 1000.0f);
-  // orthographicProj = glm::ortho(0.f, static_cast<float>(width), static_cast<float>(height), 0.f, -1000.0f, 1000.0f);
   perspectiveProj =
       glm::perspective(glm::radians(_fov), static_cast<float>(width) / static_cast<float>(height), 0.1f, 200.0f);
-  // perspectiveProj[1][1] *= -1;
-  orthographicProj[1][1] *= -1;
   view = glm::translate(glm::mat4{1.0f}, position);
 }
 

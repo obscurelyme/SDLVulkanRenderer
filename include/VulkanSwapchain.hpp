@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <array>
+#include <iostream>
 #include <vector>
 
 #include "SimpleMessageBox.hpp"
@@ -36,6 +37,7 @@ class VulkanSwapchain {
     // Destroy Swapchain
     vkDestroySwapchainKHR(_logicalDevice->Handle, Handle, nullptr);
     Handle = VK_NULL_HANDLE;
+    std::cout << "Swap Chain destroyed" << std::endl;
   }
 
   void SetWindow(SDL_Window* w) { _window = w; }
@@ -71,20 +73,28 @@ class VulkanSwapchain {
   }
 
   void ChooseSwapExtent() {
+    int width, height;
+    SDL_Vulkan_GetDrawableSize(_window, &width, &height);
+    _extent.width = width;
+    _extent.height = height;
     VulkanSwapChainSupportDetails details = _physicalDevice->SwapChainSupport;
+    _extent = details.capabilities.currentExtent;
 
-    if (details.capabilities.currentExtent.width != UINT32_MAX) {
-      _extent = details.capabilities.currentExtent;
-    } else {
-      int width, height;
-      SDL_Vulkan_GetDrawableSize(_window, &width, &height);
-      _extent = {.width = static_cast<uint32_t>(width), .height = static_cast<uint32_t>(height)};
+    // if (details.capabilities.currentExtent.width != UINT32_MAX) {
+    //   _extent = details.capabilities.currentExtent;
+    // } else {
+    //   int width, height;
+    //   SDL_Vulkan_GetDrawableSize(_window, &width, &height);
+    //   _extent = {.width = static_cast<uint32_t>(width), .height = static_cast<uint32_t>(height)};
 
-      _extent.width = std::clamp(_extent.width, details.capabilities.minImageExtent.width,
-                                 details.capabilities.maxImageExtent.width);
-      _extent.height = std::clamp(_extent.height, details.capabilities.minImageExtent.height,
-                                  details.capabilities.maxImageExtent.height);
-    }
+    //   _extent.width = std::clamp(_extent.width, details.capabilities.minImageExtent.width,
+    //                              details.capabilities.maxImageExtent.width);
+    //   _extent.height = std::clamp(_extent.height, details.capabilities.minImageExtent.height,
+    //                               details.capabilities.maxImageExtent.height);
+    // }
+    std::cout << "SDL Extent: (" << width << ", " << height << ")" << std::endl;
+    std::cout << "Physical Device Extent: (" << details.capabilities.currentExtent.width << ", "
+              << details.capabilities.currentExtent.height << ")" << std::endl;
   }
 
   void Create() {
@@ -122,7 +132,15 @@ class VulkanSwapchain {
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    VkResult result = vkCreateSwapchainKHR(_logicalDevice->Handle, &createInfo, nullptr, &Handle);
+    VkResult result = VK_SUCCESS;
+
+    if (Handle == VK_NULL_HANDLE) {
+      std::cout << "Invoked" << std::endl;
+      result = vkCreateSwapchainKHR(_logicalDevice->Handle, &createInfo, nullptr, &Handle);
+    } else {
+      std::cout << "Already here..." << std::endl;
+    }
+
     if (result != VK_SUCCESS) {
       SimpleMessageBox::ShowError("Vulkan Swap Chain", fmt::format("Unable to create the Vulkan Swap Chain.\nVulkan "
                                                                    "Error Code: [{}]",
@@ -199,7 +217,7 @@ class VulkanSwapchain {
 
   VkImageView GetDepthImageView() { return _depthImageView; }
 
-  VkSwapchainKHR Handle;
+  VkSwapchainKHR Handle{VK_NULL_HANDLE};
 
   private:
   SDL_Window* _window{nullptr};

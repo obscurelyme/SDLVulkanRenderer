@@ -8,6 +8,7 @@
 #include <set>
 #include <vector>
 
+#include "Camera.hpp"
 #include "VkInitializers.hpp"
 #include "VulkanAllocator.hpp"
 #include "VulkanShaderManager.hpp"
@@ -84,6 +85,7 @@ void Vulkan::CleanupSwapChain() {
   triangle->OnSwapChainDestroyed();
   renderPass.DestroyHandle();
   swapChain.DestroyHandle();
+  std::cout << "Cleaned up swap chain" << std::endl;
 }
 
 void Vulkan::FramebufferResize() { framebufferResized = true; }
@@ -101,13 +103,15 @@ void Vulkan::RecreateSwapChain() {
   // TODO: Nofity all pipelines and layouts to be created...
   EmitSwapChainCreated();
   triangle->OnSwapChainRecreated(renderPass.Handle, commands.GetBuffer(), &swapChain);
+  Camera::SetMainCameraDimensions(physicalDevice.SwapChainSupport.capabilities.currentExtent.width,
+                                  physicalDevice.SwapChainSupport.capabilities.currentExtent.height);
 }
 
 void Vulkan::Draw() {
   syncUtils.WaitForFence();
   syncUtils.ResetFence();
 
-  ImGui::Render();
+  // ImGui::Render();
 
   // NOTE: Request image from the swapchain, one second timeout
   uint32_t imageIndex;
@@ -115,8 +119,9 @@ void Vulkan::Draw() {
                                                   syncUtils.PresentSemaphore(), VK_NULL_HANDLE, &imageIndex);
 
   if (nxtImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
+    std::cout << "Implicit Recreation" << std::endl;
     RecreateSwapChain();
-    return;
+    std::cout << "Implicit Recreation Done" << std::endl;
   } else if (nxtImageResult != VK_SUCCESS) {
     SimpleMessageBox::ShowError("Drawing Error", fmt::format("Vulkan Error Code: [{}]", nxtImageResult));
   }
@@ -130,7 +135,7 @@ void Vulkan::Draw() {
   triangle->Draw();
   // suzanne->Draw();
 
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetBuffer());
+  // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetBuffer());
   commands.EndRecording();
 
   VkSemaphore presentSemaRef = syncUtils.PresentSemaphore();
@@ -166,7 +171,16 @@ void Vulkan::Draw() {
   presentInfo.pImageIndices = &imageIndex;
   presentInfo.pResults = nullptr;  // Optional
 
-  vkQueuePresentKHR(logicalDevice.PresentQueue, &presentInfo);
+  VkResult presentResult = vkQueuePresentKHR(logicalDevice.PresentQueue, &presentInfo);
+
+  if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || framebufferResized) {
+    framebufferResized = false;
+    std::cout << "Explicit Recreation" << std::endl;
+    RecreateSwapChain();
+    std::cout << "Explicit Recreation Done" << std::endl;
+  } else if (presentResult != VK_SUCCESS) {
+    throw std::runtime_error("failed to present swap chain image!");
+  }
   framecount++;
 }
 
@@ -423,6 +437,7 @@ void Vulkan::AddRequiredDeviceExtensionSupport(VkPhysicalDevice device) {
 }
 
 void Vulkan::CreateSwapChain() {
+  swapChain.SetWindow(windowHandle);
   swapChain.SetPhysicalDevice(&physicalDevice);
   swapChain.SetLogicalDevice(&logicalDevice);
   swapChain.ChooseSwapSurfaceFormat();

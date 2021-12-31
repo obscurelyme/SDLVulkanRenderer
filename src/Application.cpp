@@ -30,11 +30,11 @@ Application::Application(std::string name, int windowWidth, int windowHeight) : 
   SDL_SetWindowIcon(window, icon);
   Camera::CreateMainCamera(windowWidth, windowHeight);
   renderer = new Vulkan(appName, window);
-  VulkanImGui::Init(window, renderer);
+  // VulkanImGui::Init(window, renderer);
 }
 
 Application::~Application() {
-  VulkanImGui::Destroy();
+  // VulkanImGui::Destroy();
   delete renderer;
   SDL_DestroyWindow(window);
   IMG_Quit();
@@ -46,7 +46,7 @@ void Application::Run() {
     while (SDL_PollEvent(&event)) {
       // Handle ImGui events first...
 
-      ImGui_ImplSDL2_ProcessEvent(&event);
+      // ImGui_ImplSDL2_ProcessEvent(&event);
       // Custom events next...
 
       if (event.type == SDL_QUIT) {
@@ -63,11 +63,11 @@ void Application::Run() {
       }
     }
 
-    VulkanImGui::NewFrame();
-    VulkanImGui::Update();
+    // VulkanImGui::NewFrame();
+    // VulkanImGui::Update();
 
     renderer->Draw();
 
-    SDL_Delay(16);
+    SDL_Delay(17);
   }
 }
