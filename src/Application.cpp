@@ -65,6 +65,7 @@ void Application::Run() {
 
     VulkanImGui::NewFrame();
     VulkanImGui::Update();
+    ImGui::ShowDemoWindow();
 
     renderer->Draw();
 

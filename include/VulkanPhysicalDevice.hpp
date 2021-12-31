@@ -9,6 +9,7 @@
 #include <map>
 #include <optional>
 #include <set>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -101,7 +102,9 @@ class VulkanPhysicalDevice {
     return *this;
   }
 
-  static std::vector<VulkanPhysicalDevice> EnumeratePhysicalDevices(VkInstance instance) {
+  bool operator==(VulkanPhysicalDevice& rhs) { return strcmp(Name(), rhs.Name()) == 0; }
+
+  static std::vector<VulkanPhysicalDevice>& EnumeratePhysicalDevices(VkInstance instance) {
     if (PhysicalDevices.size() > 0) {
       return PhysicalDevices;
     }

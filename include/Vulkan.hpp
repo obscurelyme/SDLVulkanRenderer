@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include "Editor/ImGuiEditorObject.hpp"
 #include "Suzanne.hpp"
 #include "Triangle.hpp"
 #include "VulkanCommands.hpp"
@@ -29,7 +30,7 @@ struct UploadContext {
   VkCommandPool _commandPool;
 };
 
-class Vulkan {
+class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
   public:
   friend class VulkanShaderManager;
 
@@ -43,6 +44,8 @@ class Vulkan {
 
   void RecreateSwapChain();
   void FramebufferResize();
+
+  void EditorUpdate() override;
 
   /**
    * @brief VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: Diagnostic message
@@ -167,6 +170,72 @@ class Vulkan {
   private:
   std::vector<std::function<void(void)>> swapChainDestroyedListeners{};
   std::vector<std::function<void(void)>> swapChainCreatedListeners{};
+
+  // EDITOR DETAILS
+  private:
+  // List available physical devices to get info on.
+  void Editor_PhysicalDeviceSelection();
+  // List available information about the selected device.
+  void Editor_PhysicalDeviceInformation();
+
+  size_t selectedPhysicalDeviceIndex{9999};
+
+  bool selectedPresentMode{false};
+  std::array<const char *, 55> features{"robustBufferAccess",
+                                        "fullDrawIndexUint32",
+                                        "imageCubeArray",
+                                        "independentBlend",
+                                        "geometryShader",
+                                        "tessellationShader",
+                                        "sampleRateShading",
+                                        "dualSrcBlend",
+                                        "logicOp",
+                                        "multiDrawIndirect",
+                                        "drawIndirectFirstInstance",
+                                        "depthClamp",
+                                        "depthBiasClamp",
+                                        "fillModeNonSolid",
+                                        "depthBounds",
+                                        "wideLines",
+                                        "largePoints",
+                                        "alphaToOne",
+                                        "multiViewport",
+                                        "samplerAnisotropy",
+                                        "textureCompressionETC2",
+                                        "textureCompressionASTC_LDR",
+                                        "textureCompressionBC",
+                                        "occlusionQueryPrecise",
+                                        "pipelineStatisticsQuery",
+                                        "vertexPipelineStoresAndAtomics",
+                                        "fragmentStoresAndAtomics",
+                                        "shaderTessellationAndGeometryPointSize",
+                                        "shaderImageGatherExtended",
+                                        "shaderStorageImageExtendedFormats",
+                                        "shaderStorageImageMultisample",
+                                        "shaderStorageImageReadWithoutFormat",
+                                        "shaderStorageImageWriteWithoutFormat",
+                                        "shaderUniformBufferArrayDynamicIndexing",
+                                        "shaderSampledImageArrayDynamicIndexing",
+                                        "shaderStorageBufferArrayDynamicIndexing",
+                                        "shaderStorageImageArrayDynamicIndexing",
+                                        "shaderClipDistance",
+                                        "shaderCullDistance",
+                                        "shaderFloat64",
+                                        "shaderInt64",
+                                        "shaderInt16",
+                                        "shaderResourceResidency",
+                                        "shaderResourceMinLod",
+                                        "sparseBinding",
+                                        "sparseResidencyBuffer",
+                                        "sparseResidencyImage2D",
+                                        "sparseResidencyImage3D",
+                                        "sparseResidency2Samples",
+                                        "sparseResidency4Samples",
+                                        "sparseResidency8Samples",
+                                        "sparseResidency16Samples",
+                                        "sparseResidencyAliased",
+                                        "variableMultisampleRate",
+                                        "inheritedQueries"};
 };
 
 #endif

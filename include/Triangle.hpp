@@ -60,6 +60,29 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
     ImGui::End();
   }
 
+  void Update() {
+    movement = glm::vec2{0.0f};
+    if (_moveRight) {
+      movement += glm::vec2{1.0f, 0.0f} * speed;  //* 0.016f;
+    }
+
+    if (_moveLeft) {
+      movement += glm::vec2{-1.0f, 0.0f} * speed;  //* 0.016f;
+    }
+
+    if (_moveUp) {
+      movement += glm::vec2{0.0f, 1.0f} * speed;  //* 0.016f;
+    }
+
+    if (_moveDown) {
+      movement += glm::vec2{0.0f, -1.0f} * speed;  //* 0.016f;
+    }
+
+    glm::vec3 no = glm::normalize(glm::vec3(movement, 0.0f));
+    position.x += movement.x;
+    position.y += movement.y;
+  }
+
   void Draw() {
     if (_useRedPipeline) {
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _redTrianglePipeline);
@@ -71,11 +94,11 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
 
       glm::mat4 model = glm::mat4{1.0f};
       if (_orthoMode) {
-        model = glm::translate(model, position);  // vec3 is the position of this object
+        model = glm::translate(model, glm::vec3(position, 0.0f));  // vec3 is the position of this object
         // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
         // model = glm::scale(model, glm::vec3{10, 10, 10});
       } else {
-        model = glm::translate(model, position);  // vec3 is the position of this object
+        model = glm::translate(model, glm::vec3(position, 0.0f));  // vec3 is the position of this object
         // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
         // model = glm::scale(model, glm::vec3{.1, .1, .1});
       }
@@ -106,20 +129,36 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
       }
     }
 
-    if (event.keysym.scancode == SDL_SCANCODE_RIGHT && event.type == SDL_KEYDOWN) {
-      position += glm::vec3{1.0f, 0.0f, 0.0f};
+    if (event.keysym.scancode == SDL_SCANCODE_RIGHT) {
+      if (event.type == SDL_KEYDOWN) {
+        _moveRight = true;
+      } else {
+        _moveRight = false;
+      }
     }
 
-    if (event.keysym.scancode == SDL_SCANCODE_LEFT && event.type == SDL_KEYDOWN) {
-      position += glm::vec3{-1.0f, 0.0f, 0.0f};
+    if (event.keysym.scancode == SDL_SCANCODE_LEFT) {
+      if (event.type == SDL_KEYDOWN) {
+        _moveLeft = true;
+      } else {
+        _moveLeft = false;
+      }
     }
 
-    if (event.keysym.scancode == SDL_SCANCODE_UP && event.type == SDL_KEYDOWN) {
-      position += glm::vec3{0.0f, 1.0f, 0.0f};
+    if (event.keysym.scancode == SDL_SCANCODE_UP) {
+      if (event.type == SDL_KEYDOWN) {
+        _moveUp = true;
+      } else {
+        _moveUp = false;
+      }
     }
 
-    if (event.keysym.scancode == SDL_SCANCODE_DOWN && event.type == SDL_KEYDOWN) {
-      position += glm::vec3{0.0f, -1.0f, 0.0f};
+    if (event.keysym.scancode == SDL_SCANCODE_DOWN) {
+      if (event.type == SDL_KEYDOWN) {
+        _moveDown = true;
+      } else {
+        _moveDown = false;
+      }
     }
   }
 
@@ -231,8 +270,15 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
   int _framenumber{0};
   bool _orthoMode{false};
   std::shared_ptr<Camera> _mainCamera;
-  glm::vec3 position{0.0f, 0.0f, 0.0f};
+  glm::vec2 position{0.0f, 0.0f};
+  glm::vec2 movement{0.0f};
   float rotation;
+  float speed{0.16};
+
+  bool _moveRight{false};
+  bool _moveLeft{false};
+  bool _moveUp{false};
+  bool _moveDown{false};
 };
 
 #endif

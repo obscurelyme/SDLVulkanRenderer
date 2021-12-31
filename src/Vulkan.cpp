@@ -15,6 +15,27 @@
 #include "imgui.h"
 #include "imgui_impl_vulkan.h"
 
+std::string VkPresentModeKHRString(VkPresentModeKHR mode) {
+  switch (mode) {
+    case VK_PRESENT_MODE_IMMEDIATE_KHR:
+      return "Immediate Mode";
+    case VK_PRESENT_MODE_MAILBOX_KHR:
+      return "Triple Buffering";
+    case VK_PRESENT_MODE_FIFO_KHR:
+      return "Vertical Sync";
+    case VK_PRESENT_MODE_FIFO_RELAXED_KHR:
+      return "Relaxed Vertical Sync";
+    case VK_PRESENT_MODE_SHARED_DEMAND_REFRESH_KHR:
+      return "Shared Demand";
+    case VK_PRESENT_MODE_SHARED_CONTINUOUS_REFRESH_KHR:
+      return "Shared Continuous";
+    case VK_PRESENT_MODE_MAX_ENUM_KHR:
+      return "Max Enum (Do not set to this value)";
+    default:
+      return "Unknown Vulkan Present Mode";
+  }
+}
+
 int Vulkan::MAX_FRAMES_IN_FLIGHT = 2;
 
 Vulkan *Vulkan::_mainRenderer = nullptr;
@@ -75,6 +96,108 @@ Vulkan::~Vulkan() {
   }
 }
 
+void Vulkan::EditorUpdate() {
+  ImGui::Begin("Vulkan Renderer");
+  if (ImGui::BeginTabBar("Test Tabs", ImGuiTabBarFlags_None)) {
+    if (ImGui::BeginTabItem("Physical Device")) {
+      Editor_PhysicalDeviceSelection();
+      ImGui::Separator();
+      Editor_PhysicalDeviceInformation();
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("Logical Device")) {
+      ImGui::Text("logical stuff...");
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("Swapchain")) {
+      ImGui::Text("swapchain info...!");
+      ImGui::EndTabItem();
+    }
+    if (ImGui::BeginTabItem("Framebuffer")) {
+      ImGui::Text("swapchain info...!");
+      ImGui::EndTabItem();
+    }
+    ImGui::EndTabBar();
+  }
+  ImGui::End();
+}
+
+void Vulkan::Editor_PhysicalDeviceSelection() {
+  if (ImGui::BeginListBox("#physicalDevices")) {
+    auto physicalDevices = VulkanPhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
+    for (size_t i = 0; i < physicalDevices.size(); i++) {
+      bool selected = false;
+      if (selectedPhysicalDeviceIndex == 9999) {
+        selected = physicalDevices[i] == physicalDevice;
+      } else {
+        selected = selectedPhysicalDeviceIndex == i;
+      }
+      if (ImGui::Selectable(physicalDevices[i].Name(), selected)) {
+        selectedPhysicalDeviceIndex = i;
+      }
+      if (selected) {
+        if (selectedPhysicalDeviceIndex == 9999) {
+          selectedPhysicalDeviceIndex = i;
+        }
+        ImGui::SetItemDefaultFocus();
+      }
+    }
+
+    ImGui::EndListBox();
+  } else {
+    selectedPhysicalDeviceIndex = 0;
+  }
+}
+
+void Vulkan::Editor_PhysicalDeviceInformation() {
+  auto physicalDevices = VulkanPhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
+  VulkanPhysicalDevice selectedDevice = physicalDevices[selectedPhysicalDeviceIndex];
+
+  if (ImGui::CollapsingHeader("Supported Extensions")) {
+    if (ImGui::BeginTable("Supported Extensions", 2, ImGuiTableFlags_ScrollY, ImVec2(0.f, 300.f), 300.f)) {
+      ImGui::TableNextRow();
+      ImGui::TableSetColumnIndex(0);
+      ImGui::Text("Extension Name");
+      ImGui::TableSetColumnIndex(1);
+      ImGui::Text("Spec Version");
+
+      for (auto &supportedExtension : selectedDevice.SupportedExtensions) {
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        ImGui::Text("%s", supportedExtension.extensionName);
+        ImGui::TableSetColumnIndex(1);
+        ImGui::Text("%s", std::to_string(supportedExtension.specVersion).c_str());
+      }
+      ImGui::EndTable();
+    }
+  }
+
+  if (ImGui::CollapsingHeader("Device Properties")) {
+    ImGui::BulletText("API Version: %d", selectedDevice.Properties.apiVersion);
+    ImGui::BulletText("Driver Version: %d", selectedDevice.Properties.driverVersion);
+    ImGui::BulletText("Vendor ID: %d", selectedDevice.Properties.vendorID);
+    ImGui::BulletText("Device ID: %d", selectedDevice.Properties.deviceID);
+    ImGui::BulletText("Device Name: %s", selectedDevice.Properties.deviceName);
+    ImGui::BulletText("Pipeline Cache UUID: %s", selectedDevice.Properties.pipelineCacheUUID);
+  }
+
+  if (ImGui::CollapsingHeader("Device Features")) {
+    // NOTE: Set to address of the first feature.
+    VkBool32 *pFeature = &selectedDevice.Features.robustBufferAccess;
+    for (size_t i = 0; i < sizeof(selectedDevice.Features) / sizeof(VkBool32); i++) {
+      ImGui::BulletText("%s: %s", features[i], *pFeature == 1 ? "On" : "Off");
+      pFeature++;
+    }
+  }
+
+  if (ImGui::CollapsingHeader("Swapchain Support")) {
+    for (auto presentMode : selectedDevice.SwapChainSupport.presentModes) {
+      std::string str = fmt::format("{}", VkPresentModeKHRString(presentMode));
+      ImGui::Checkbox(str.c_str(), &selectedPresentMode);
+    }
+  }
+}
+
 Vulkan *Vulkan::GetRenderer() { return _mainRenderer; }
 
 void Vulkan::CleanupSwapChain() {
@@ -118,6 +241,7 @@ void Vulkan::RecreateSwapChain() {
 }
 
 void Vulkan::Draw() {
+  triangle->Update();
   syncUtils.WaitForFence();
   syncUtils.ResetFence();
 
@@ -370,11 +494,15 @@ void Vulkan::DestroyDebugUtilsMessengerEXT(const VkAllocationCallbacks *pAllocat
 }
 
 void Vulkan::PickPhysicalDevice() {
-  std::vector<VulkanPhysicalDevice> devices = VulkanPhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
+  std::vector<VulkanPhysicalDevice> &devices = VulkanPhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
 
   for (VulkanPhysicalDevice &device : devices) {
     device.SetSurface(vulkanSurface);
     device.FindQueueFamilies();
+    device.QuerySwapChainSupport();
+  }
+
+  for (VulkanPhysicalDevice &device : devices) {
     if (IsDeviceSuitable(device)) {
       physicalDevice = device;
       AddRequiredDeviceExtensionSupport(physicalDevice.Handle);
@@ -391,12 +519,13 @@ bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
   bool swapChainAdequate = false;
   bool extensionsSupported = device.AreExtensionsSupported(deviceExtensions);
   if (extensionsSupported) {
-    device.QuerySwapChainSupport();
+    // device.QuerySwapChainSupport();
     swapChainAdequate = !device.SwapChainSupport.formats.empty() && !device.SwapChainSupport.presentModes.empty();
   }
 
   fmt::print("Checking device: {}\n", device.ToString());
 
+#define FORCE_INTEGRATED_GPU
 #ifdef FORCE_INTEGRATED_GPU
   bool result =
       device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsIntegratedGPU();
