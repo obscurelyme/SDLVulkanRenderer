@@ -113,6 +113,14 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
     if (event.keysym.scancode == SDL_SCANCODE_LEFT && event.type == SDL_KEYDOWN) {
       position += glm::vec3{-1.0f, 0.0f, 0.0f};
     }
+
+    if (event.keysym.scancode == SDL_SCANCODE_UP && event.type == SDL_KEYDOWN) {
+      position += glm::vec3{0.0f, 1.0f, 0.0f};
+    }
+
+    if (event.keysym.scancode == SDL_SCANCODE_DOWN && event.type == SDL_KEYDOWN) {
+      position += glm::vec3{0.0f, -1.0f, 0.0f};
+    }
   }
 
   void OnSwapChainDestroyed() { CleanUpPipelines(); }

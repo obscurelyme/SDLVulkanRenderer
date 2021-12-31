@@ -68,6 +68,6 @@ void Application::Run() {
 
     renderer->Draw();
 
-    SDL_Delay(17);
+    SDL_Delay(16);
   }
 }
