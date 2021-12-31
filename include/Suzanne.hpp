@@ -4,6 +4,7 @@
 #include <vulkan/vulkan.h>
 
 // #define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
 #include <iostream>
 
@@ -14,13 +15,14 @@
 #include "VulkanShaderManager.hpp"
 #include "VulkanSwapchain.hpp"
 
-class Suzanne {
+class Suzanne : public SDLKeyboardEventListener {
   public:
   Suzanne(VmaAllocator alloc, VkDevice device, VkRenderPass renderPass, VkCommandBuffer command,
           VulkanSwapchain* swapChain);
   ~Suzanne();
 
   void Draw();
+  void OnKeyboardEvent(const SDL_KeyboardEvent& event);
 
   private:
   void UploadMesh();
@@ -38,6 +40,7 @@ class Suzanne {
 
   bool _orthoMode{false};
   std::shared_ptr<Camera> _mainCamera;
+  glm::vec3 position{0.0f, 0.0f, 0.0f};
 };
 
 #endif

@@ -1,5 +1,7 @@
 #include "Suzanne.hpp"
 
+#include "VkUtils.hpp"
+
 Suzanne::Suzanne(VmaAllocator alloc, VkDevice device, VkRenderPass renderPass, VkCommandBuffer command,
                  VulkanSwapchain* swapChain) :
     allocator(alloc),
@@ -42,11 +44,11 @@ void Suzanne::Draw() {
   vkCmdBindVertexBuffers(cmd, 0, 1, &mesh.vertexBuffer.buffer, &offset);
   glm::mat4 model = glm::mat4{1.0f};
   if (_orthoMode) {
-    model = glm::translate(model, glm::vec3{0.0f, 1.0f, 0.0f});  // vec3 is the position of this object
+    model = glm::translate(model, position);  // vec3 is the position of this object
     // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
     // model = glm::scale(model, glm::vec3{100, 100, 100});
   } else {
-    model = glm::translate(model, glm::vec3{0.0f, 1.0f, 0.0f});  // vec3 is the position of this object
+    model = glm::translate(model, position);  // vec3 is the position of this object
     // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
     // model = glm::scale(model, glm::vec3{.1, .1, .1});
   }
@@ -68,20 +70,28 @@ void Suzanne::Draw() {
 
 void Suzanne::UploadMesh() {
   // Allocate the Vertex Buffer
-  VkBufferCreateInfo bufferInfo{};
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  // Total size, in bytes, of the buffer we wish to allocate
-  bufferInfo.size = mesh.vertices.size() * sizeof(Vertex);
-  // Specifies that this buffer is going to be used as a vertex buffer.
-  bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-  VmaAllocationCreateInfo vmaAllocInfo{};
-  vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-  vmaCreateBuffer(allocator, &bufferInfo, &vmaAllocInfo, &mesh.vertexBuffer.buffer, &mesh.vertexBuffer.allocation,
-                  nullptr);
+  mesh.vertexBuffer = CreateBuffer(mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                   VMA_MEMORY_USAGE_CPU_TO_GPU);
 
   void* data;
   vmaMapMemory(allocator, mesh.vertexBuffer.allocation, &data);
   memcpy(data, mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
   vmaUnmapMemory(allocator, mesh.vertexBuffer.allocation);
+}
+
+void Suzanne::OnKeyboardEvent(const SDL_KeyboardEvent& event) {
+  if (event.type == SDL_KEYDOWN) {
+    if (event.keysym.scancode == SDL_SCANCODE_UP) {
+      position.y += 0.5f;
+    }
+    if (event.keysym.scancode == SDL_SCANCODE_DOWN) {
+      position.y -= 0.5f;
+    }
+    if (event.keysym.scancode == SDL_SCANCODE_RIGHT) {
+      position.x += 0.5f;
+    }
+    if (event.keysym.scancode == SDL_SCANCODE_LEFT) {
+      position.x -= 0.5f;
+    }
+  }
 }

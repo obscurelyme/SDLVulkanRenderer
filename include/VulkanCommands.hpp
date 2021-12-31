@@ -17,7 +17,7 @@
 
 class VulkanCommands {
   public:
-  VulkanCommands() : _commandBuffers({}), clearColor({}), depthClear({}) {
+  VulkanCommands() : clearColor({}), depthClear({}) {
     // NOTE: default clear color is black
     clearColor.color = {0.0f, 0.0f, 0.0f, 1.0f};
     depthClear.depthStencil.depth = 1.0f;
@@ -42,9 +42,6 @@ class VulkanCommands {
   void FreeCommandBuffers() {
     if (_logicalDevice != nullptr && _logicalDevice->Handle != VK_NULL_HANDLE) {
       vkFreeCommandBuffers(_logicalDevice->Handle, _commandPool, static_cast<uint32_t>(1), &_mainCommandBuffer);
-
-      // vkFreeCommandBuffers(_logicalDevice->Handle, _commandPool, static_cast<uint32_t>(_commandBuffers.size()),
-      //                      _commandBuffers.data());
     }
   }
 
@@ -114,7 +111,6 @@ class VulkanCommands {
 
   void Prerecord() {
     BeginRecording(0);
-    // vkCmdBindPipeline(_commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
     vkCmdDraw(_mainCommandBuffer, 3, 1, 0, 0);
     EndRecording();
   }
@@ -133,7 +129,7 @@ class VulkanCommands {
   VulkanRenderPass* _renderPass{nullptr};
   VulkanFramebuffer* _framebuffer{nullptr};
   VkCommandPool _commandPool{VK_NULL_HANDLE};
-  std::vector<VkCommandBuffer> _commandBuffers;
+  // std::vector<VkCommandBuffer> _commandBuffers;
 
   VkCommandBuffer _mainCommandBuffer{VK_NULL_HANDLE};
   VkClearValue clearColor;

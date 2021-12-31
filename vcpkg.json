@@ -5,6 +5,8 @@
     "fmt",
     "glm",
     "tinyobjloader",
+    "stb",
+    "sdl2-image",
     {
       "name": "sdl2",
       "default-features": false,
@@ -17,7 +19,13 @@
       "features": ["vulkan", "x11"],
       "platform": "linux"
     },
-    "vulkan-memory-allocator"
+    "vulkan-memory-allocator",
+    {
+      "name": "imgui",
+      "default-features": false,
+      "features": ["sdl2-binding", "vulkan-binding"],
+      "platform": "linux | osx | windows"
+    }
   ],
   "builtin-baseline": "b3cfaaf1bba70febd07c2f672ae590dc5d914180"
 }

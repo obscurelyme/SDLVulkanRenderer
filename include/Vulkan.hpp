@@ -7,7 +7,9 @@
 #include <vulkan/vulkan.h>
 
 #include <array>
+#include <functional>
 #include <iostream>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -22,6 +24,11 @@
 #include "VulkanSwapchain.hpp"
 #include "VulkanSync.hpp"
 
+struct UploadContext {
+  VkFence _uploadFence;
+  VkCommandPool _commandPool;
+};
+
 class Vulkan {
   public:
   friend class VulkanShaderManager;
@@ -32,7 +39,7 @@ class Vulkan {
   VkInstance InstanceHandle() const;
   VkDevice LogicalDevice() const { return logicalDevice.Handle; }
 
-  void Draw2();
+  void Draw();
 
   void RecreateSwapChain();
   void FramebufferResize();
@@ -66,7 +73,25 @@ class Vulkan {
     return VK_FALSE;
   }
 
+  void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function);
+
+  void EmitSwapChainWillBeDestroyed();
+  void EmitSwapChainCreated();
+
+  static void AddSwapChainDestroyedListener(std::function<void(void)> function);
+  static void AddSwapChainCreatedListener(std::function<void(void)> function);
+
+  /**
+   * Returns the main renderer for Vulkan.
+   */
+  static Vulkan *GetRenderer();
+
   private:
+  /**
+   * The one and (typically) only instance of Vulkan Renderer
+   */
+  static Vulkan *_mainRenderer;
+
   void CleanupSwapChain();
   void InitVulkan();
   bool CheckValidationLayerSupport();
@@ -89,18 +114,23 @@ class Vulkan {
   void CreateSwapChain();
   void CreateRenderPass();
   void CreateFramebuffer();
-  void CreateCommands();
+  void CreateCommands(bool recreation = false);
+  void CreateUploadCommands();
   void CreateSemaphores();
   void CreateMemoryAllocator();
-
   void CreateSurface();
+  void InitSyncStructures();
 
   void ShowError(const std::string &title, const std::string &message);
 
   bool enableValidationLayers;
   bool vulkanInstanceInitialized;
   SDL_Window *windowHandle;
+
+  public:
   VkInstance vulkanInstance;
+
+  private:
   VkApplicationInfo vulkanAppInfo;
   VkInstanceCreateInfo vulkanInstanceCreateInfo;
 
@@ -114,21 +144,10 @@ class Vulkan {
   VkDebugUtilsMessengerEXT debugMessenger;
   VkSurfaceKHR vulkanSurface;
 
-  // VkPipelineLayout pipelineLayout;
-  // VkPipeline graphicsPipeline;
-
-  // VkCommandPool commandPool;
-  // std::vector<VkCommandBuffer> commandBuffers;
-
-  // std::vector<VkSemaphore> imageAvailableSemaphores;
-  // std::vector<VkSemaphore> renderFinishedSemaphores;
-  // std::vector<VkFence> inFlightFences;
-  // std::vector<VkFence> imagesInFlight;
-  // size_t currentFrame = 0;
-
   static int MAX_FRAMES_IN_FLIGHT;
   bool framebufferResized;
 
+  public:
   VmaAllocator allocator;
   VulkanPhysicalDevice physicalDevice{nullptr};
   VulkanLogicalDevice logicalDevice;
@@ -141,6 +160,13 @@ class Vulkan {
 
   Triangle *triangle;
   Suzanne *suzanne;
+
+  // NOTE: use for immediate submit command steps
+  UploadContext _uploadContext;
+
+  private:
+  std::vector<std::function<void(void)>> swapChainDestroyedListeners{};
+  std::vector<std::function<void(void)>> swapChainCreatedListeners{};
 };
 
 #endif

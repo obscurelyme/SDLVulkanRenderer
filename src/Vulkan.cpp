@@ -8,12 +8,16 @@
 #include <set>
 #include <vector>
 
+#include "Camera.hpp"
+#include "VkInitializers.hpp"
+#include "VulkanAllocator.hpp"
 #include "VulkanShaderManager.hpp"
-
-#define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
+#include "imgui.h"
+#include "imgui_impl_vulkan.h"
 
 int Vulkan::MAX_FRAMES_IN_FLIGHT = 2;
+
+Vulkan *Vulkan::_mainRenderer = nullptr;
 
 Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
     enableValidationLayers(true),
@@ -37,9 +41,12 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateRenderPass();
   CreateFramebuffer();
   CreateCommands();
+  CreateUploadCommands();
   CreateSemaphores();
-  // triangle = new Triangle(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
-  suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  InitSyncStructures();
+  _mainRenderer = this;
+  triangle = new Triangle(logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  // suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
 
 Vulkan::~Vulkan() {
@@ -49,20 +56,18 @@ Vulkan::~Vulkan() {
     DestroyDebugUtilsMessengerEXT(nullptr);
   }
 
-  CleanupSwapChain();
-  // delete triangle;
-  delete suzanne;
+  // Destroy upload commands
+  vkDestroyCommandPool(logicalDevice.Handle, _uploadContext._commandPool, nullptr);
+  vkDestroyFence(logicalDevice.Handle, _uploadContext._uploadFence, nullptr);
 
-  // for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-  //   vkDestroySemaphore(logicalDevice.Handle, renderFinishedSemaphores[i], nullptr);
-  //   vkDestroySemaphore(logicalDevice.Handle, imageAvailableSemaphores[i], nullptr);
-  //   vkDestroyFence(logicalDevice.Handle, inFlightFences[i], nullptr);
-  // }
+  CleanupSwapChain();
+  delete triangle;
+  // delete suzanne;
+
   syncUtils.DestroyHandles();
   commands.DestroyPool();
-  // vkDestroyCommandPool(logicalDevice.Handle, commandPool, nullptr);
   VulkanShaderManager::CleanAllShaders();
-  vmaDestroyAllocator(allocator);
+  VulkanAllocator::DestroyAllocator();
   logicalDevice.DestroyHandle();
   if (vulkanInstanceInitialized) {
     vkDestroySurfaceKHR(vulkanInstance, vulkanSurface, nullptr);
@@ -70,39 +75,64 @@ Vulkan::~Vulkan() {
   }
 }
 
+Vulkan *Vulkan::GetRenderer() { return _mainRenderer; }
+
 void Vulkan::CleanupSwapChain() {
   framebuffer.ClearFramebufferHandles();
   commands.FreeCommandBuffers();
-  // vkFreeCommandBuffers(logicalDevice.Handle, commandPool, static_cast<uint32_t>(commandBuffers.size()),
-  //                      commandBuffers.data());
-  // vkDestroyPipeline(logicalDevice.Handle, graphicsPipeline, nullptr);
-  // vkDestroyPipelineLayout(logicalDevice.Handle, pipelineLayout, nullptr);
+  // TODO: Notify all pipelines and layouts to be destroyed...
+  EmitSwapChainWillBeDestroyed();
+  triangle->OnSwapChainDestroyed();
   renderPass.DestroyHandle();
   swapChain.DestroyHandle();
+  std::cout << "Cleaned up swap chain" << std::endl;
 }
 
-void Vulkan::FramebufferResize() { framebufferResized = true; }
+/**
+ * @brief Non-negotiably recreate the swapchain.
+ * Typically, tutorials will have one set a flag on window resize and wait for a non VK_SUCCESS
+ * result from either vkAcquireNextImageKHR or vkQueuePresentKHR, and then recreate the swapchain.
+ * There can be an odd issue with this with SDL2 in that the window surface is still being used
+ * due to the resize taking place, and in addition to this we are trying to change up a swapchain.
+ * The result is an odd race condition where you can see VK_ERROR_NATIVE_WINDOW_IN_USE_KHR.
+ * The result is a failure to create the swapchain with the new window size. So in order to get
+ * around this complete is to just recreate the swapchain, no questions asked.
+ */
+void Vulkan::FramebufferResize() { RecreateSwapChain(); }
 
 void Vulkan::RecreateSwapChain() {
   vkDeviceWaitIdle(logicalDevice.Handle);
 
   CleanupSwapChain();
 
+  physicalDevice.QuerySwapChainSupport();
   CreateSwapChain();
   CreateRenderPass();
   CreateFramebuffer();
+  CreateCommands(true);
+  // TODO: Nofity all pipelines and layouts to be created...
+  EmitSwapChainCreated();
+  triangle->OnSwapChainRecreated(renderPass.Handle, commands.GetBuffer(), &swapChain);
+  Camera::SetMainCameraDimensions(physicalDevice.SwapChainSupport.capabilities.currentExtent.width,
+                                  physicalDevice.SwapChainSupport.capabilities.currentExtent.height);
 }
 
-void Vulkan::Draw2() {
+void Vulkan::Draw() {
   syncUtils.WaitForFence();
   syncUtils.ResetFence();
+
+  ImGui::Render();
 
   // NOTE: Request image from the swapchain, one second timeout
   uint32_t imageIndex;
   VkResult nxtImageResult = vkAcquireNextImageKHR(logicalDevice.Handle, swapChain.Handle, 1000000000,
                                                   syncUtils.PresentSemaphore(), VK_NULL_HANDLE, &imageIndex);
 
-  if (nxtImageResult != VK_SUCCESS) {
+  if (nxtImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
+    std::cout << "Implicit Recreation" << std::endl;
+    RecreateSwapChain();
+    std::cout << "Implicit Recreation Done" << std::endl;
+  } else if (nxtImageResult != VK_SUCCESS) {
     SimpleMessageBox::ShowError("Drawing Error", fmt::format("Vulkan Error Code: [{}]", nxtImageResult));
   }
 
@@ -112,8 +142,10 @@ void Vulkan::Draw2() {
 
   commands.BeginRecording(imageIndex);
   // vkCmd* stuff...
-  // triangle->Draw();
-  suzanne->Draw();
+  triangle->Draw();
+  // suzanne->Draw();
+
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetBuffer());
   commands.EndRecording();
 
   VkSemaphore presentSemaRef = syncUtils.PresentSemaphore();
@@ -149,7 +181,16 @@ void Vulkan::Draw2() {
   presentInfo.pImageIndices = &imageIndex;
   presentInfo.pResults = nullptr;  // Optional
 
-  vkQueuePresentKHR(logicalDevice.PresentQueue, &presentInfo);
+  VkResult presentResult = vkQueuePresentKHR(logicalDevice.PresentQueue, &presentInfo);
+
+  if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || framebufferResized) {
+    framebufferResized = false;
+    std::cout << "Explicit Recreation" << std::endl;
+    RecreateSwapChain();
+    std::cout << "Explicit Recreation Done" << std::endl;
+  } else if (presentResult != VK_SUCCESS) {
+    throw std::runtime_error("failed to present swap chain image!");
+  }
   framecount++;
 }
 
@@ -282,7 +323,6 @@ void Vulkan::SetupValidationLayers() {
 
   VULKAN_LAYERS_COUNT = 1;
   VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_validation");
-  // VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_validation");
 }
 
 void Vulkan::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
@@ -357,10 +397,19 @@ bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
 
   fmt::print("Checking device: {}\n", device.ToString());
 
+#ifdef FORCE_INTEGRATED_GPU
+  bool result =
+      device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsIntegratedGPU();
+#else
   bool result = device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsDiscreteGPU();
+#endif
 
   if (result) {
     fmt::print("Using device: {}\n", device.Name());
+  }
+
+  for (auto e : device.SupportedExtensions) {
+    std::cout << e.extensionName << std::endl;
   }
 
   return result;
@@ -377,11 +426,8 @@ void Vulkan::CreateLogicalDevice() {
 }
 
 void Vulkan::CreateMemoryAllocator() {
-  VmaAllocatorCreateInfo info{};
-  info.physicalDevice = physicalDevice.Handle;
-  info.device = logicalDevice.Handle;
-  info.instance = vulkanInstance;
-  vmaCreateAllocator(&info, &allocator);
+  VulkanAllocator::CreateAllocator(physicalDevice.Handle, logicalDevice.Handle, vulkanInstance);
+  allocator = VulkanAllocator::allocator;
 }
 
 void Vulkan::CreateSurface() {
@@ -410,6 +456,7 @@ void Vulkan::AddRequiredDeviceExtensionSupport(VkPhysicalDevice device) {
 }
 
 void Vulkan::CreateSwapChain() {
+  swapChain.SetWindow(windowHandle);
   swapChain.SetPhysicalDevice(&physicalDevice);
   swapChain.SetLogicalDevice(&logicalDevice);
   swapChain.ChooseSwapSurfaceFormat();
@@ -434,14 +481,22 @@ void Vulkan::CreateFramebuffer() {
   framebuffer.Build();
 }
 
-void Vulkan::CreateCommands() {
+void Vulkan::CreateCommands(bool recreation) {
   commands.SetLogicalDevice(&logicalDevice);
   commands.SetSwapchain(&swapChain);
   commands.SetFramebuffers(&framebuffer);
   commands.SetRenderPass(&renderPass);
   commands.SetPhysicalDevice(&physicalDevice);
-  commands.CreateCommandPool();
+  if (!recreation) {
+    commands.CreateCommandPool();
+  }
   commands.CreateCommandBuffers();
+}
+
+void Vulkan::CreateUploadCommands() {
+  VkCommandPoolCreateInfo uploadCommandPoolInfo =
+      VkInit::CommandPoolCreateInfo(physicalDevice.QueueFamilies.graphicsFamily.value());
+  vkCreateCommandPool(logicalDevice.Handle, &uploadCommandPoolInfo, nullptr, &_uploadContext._commandPool);
 }
 
 void Vulkan::CreateSemaphores() {
@@ -449,4 +504,55 @@ void Vulkan::CreateSemaphores() {
   syncUtils.CreateSemaphores();
   syncUtils.CreateRenderFence();
   syncUtils.Build();
+}
+
+void Vulkan::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function) {
+  VkCommandBufferAllocateInfo cmdAllocInfo = VkInit::CommandBufferAllocateInfo(_uploadContext._commandPool, 1);
+
+  VkCommandBuffer cmd;
+
+  vkAllocateCommandBuffers(logicalDevice.Handle, &cmdAllocInfo, &cmd);
+
+  VkCommandBufferBeginInfo cmdBeginInfo = VkInit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+  vkBeginCommandBuffer(cmd, &cmdBeginInfo);
+
+  function(cmd);
+
+  vkEndCommandBuffer(cmd);
+
+  VkSubmitInfo submit = VkInit::SubmitInfo(&cmd);
+  vkQueueSubmit(logicalDevice.GraphicsQueue, 1, &submit, _uploadContext._uploadFence);
+  vkWaitForFences(logicalDevice.Handle, 1, &_uploadContext._uploadFence, true, 9999999999);
+  vkResetFences(logicalDevice.Handle, 1, &_uploadContext._uploadFence);
+  vkResetCommandPool(logicalDevice.Handle, _uploadContext._commandPool, 0);
+}
+
+void Vulkan::InitSyncStructures() {
+  VkFenceCreateInfo uploadFenceCreateInfo = VkInit::FenceCreateInfo();
+  vkCreateFence(logicalDevice.Handle, &uploadFenceCreateInfo, nullptr, &_uploadContext._uploadFence);
+}
+
+void Vulkan::EmitSwapChainWillBeDestroyed() {
+  const size_t size = swapChainDestroyedListeners.size();
+
+  for (size_t i = 0; i < size; i++) {
+    swapChainDestroyedListeners[i]();
+  }
+}
+
+void Vulkan::EmitSwapChainCreated() {
+  const size_t size = swapChainCreatedListeners.size();
+
+  for (size_t i = 0; i < size; i++) {
+    swapChainCreatedListeners[i]();
+  }
+}
+
+void Vulkan::AddSwapChainDestroyedListener(std::function<void(void)> fn) {
+  _mainRenderer->swapChainDestroyedListeners.push_back(fn);
+}
+
+void Vulkan::AddSwapChainCreatedListener(std::function<void(void)> fn) {
+  _mainRenderer->swapChainCreatedListeners.push_back(fn);
 }
