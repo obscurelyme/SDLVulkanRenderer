@@ -26,6 +26,7 @@ VkPipelineDepthStencilStateCreateInfo CreateDepthStencilCreateInfo(bool bDepthTe
 Texture StbLoadImage(const std::string& filename);
 
 AllocatedBuffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);
+void DestroyBuffer(AllocatedBuffer allocBuffer);
 
 void MapMemory(const void* pData, size_t size, VmaAllocation allocation);
 

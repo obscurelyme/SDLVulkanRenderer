@@ -26,7 +26,7 @@ Application::Application(std::string name, int windowWidth, int windowHeight) : 
 
   icon = IMG_Load(fmt::format("{}{}", SDL_GetBasePath(), "mug.png").c_str());
   window = SDL_CreateWindow(appName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowWidth,
-                            windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
+                            windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   SDL_SetWindowIcon(window, icon);
   Camera::CreateMainCamera(windowWidth, windowHeight);
   renderer = new Vulkan(appName, window);
@@ -66,10 +66,7 @@ void Application::Run() {
     VulkanImGui::NewFrame();
     VulkanImGui::Update();
 
-    ImGui::BeginMainMenuBar();
-    ImGui::EndMainMenuBar();
-
-    renderer->Draw2();
+    renderer->Draw();
 
     SDL_Delay(16);
   }

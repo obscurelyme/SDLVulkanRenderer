@@ -40,10 +40,11 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateRenderPass();
   CreateFramebuffer();
   CreateCommands();
+  CreateUploadCommands();
   CreateSemaphores();
   InitSyncStructures();
   _mainRenderer = this;
-  triangle = new Triangle(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  triangle = new Triangle(logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
   // suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
 
@@ -54,6 +55,7 @@ Vulkan::~Vulkan() {
     DestroyDebugUtilsMessengerEXT(nullptr);
   }
 
+  // Destroy upload commands
   vkDestroyCommandPool(logicalDevice.Handle, _uploadContext._commandPool, nullptr);
   vkDestroyFence(logicalDevice.Handle, _uploadContext._uploadFence, nullptr);
 
@@ -77,6 +79,9 @@ Vulkan *Vulkan::GetRenderer() { return _mainRenderer; }
 void Vulkan::CleanupSwapChain() {
   framebuffer.ClearFramebufferHandles();
   commands.FreeCommandBuffers();
+  // TODO: Notify all pipelines and layouts to be destroyed...
+  EmitSwapChainWillBeDestroyed();
+  triangle->OnSwapChainDestroyed();
   renderPass.DestroyHandle();
   swapChain.DestroyHandle();
 }
@@ -88,12 +93,17 @@ void Vulkan::RecreateSwapChain() {
 
   CleanupSwapChain();
 
+  physicalDevice.QuerySwapChainSupport();
   CreateSwapChain();
   CreateRenderPass();
   CreateFramebuffer();
+  CreateCommands(true);
+  // TODO: Nofity all pipelines and layouts to be created...
+  EmitSwapChainCreated();
+  triangle->OnSwapChainRecreated(renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
 
-void Vulkan::Draw2() {
+void Vulkan::Draw() {
   syncUtils.WaitForFence();
   syncUtils.ResetFence();
 
@@ -104,7 +114,10 @@ void Vulkan::Draw2() {
   VkResult nxtImageResult = vkAcquireNextImageKHR(logicalDevice.Handle, swapChain.Handle, 1000000000,
                                                   syncUtils.PresentSemaphore(), VK_NULL_HANDLE, &imageIndex);
 
-  if (nxtImageResult != VK_SUCCESS) {
+  if (nxtImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
+    RecreateSwapChain();
+    return;
+  } else if (nxtImageResult != VK_SUCCESS) {
     SimpleMessageBox::ShowError("Drawing Error", fmt::format("Vulkan Error Code: [{}]", nxtImageResult));
   }
 
@@ -434,15 +447,19 @@ void Vulkan::CreateFramebuffer() {
   framebuffer.Build();
 }
 
-void Vulkan::CreateCommands() {
+void Vulkan::CreateCommands(bool recreation) {
   commands.SetLogicalDevice(&logicalDevice);
   commands.SetSwapchain(&swapChain);
   commands.SetFramebuffers(&framebuffer);
   commands.SetRenderPass(&renderPass);
   commands.SetPhysicalDevice(&physicalDevice);
-  commands.CreateCommandPool();
+  if (!recreation) {
+    commands.CreateCommandPool();
+  }
   commands.CreateCommandBuffers();
+}
 
+void Vulkan::CreateUploadCommands() {
   VkCommandPoolCreateInfo uploadCommandPoolInfo =
       VkInit::CommandPoolCreateInfo(physicalDevice.QueueFamilies.graphicsFamily.value());
   vkCreateCommandPool(logicalDevice.Handle, &uploadCommandPoolInfo, nullptr, &_uploadContext._commandPool);
@@ -480,4 +497,28 @@ void Vulkan::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function
 void Vulkan::InitSyncStructures() {
   VkFenceCreateInfo uploadFenceCreateInfo = VkInit::FenceCreateInfo();
   vkCreateFence(logicalDevice.Handle, &uploadFenceCreateInfo, nullptr, &_uploadContext._uploadFence);
+}
+
+void Vulkan::EmitSwapChainWillBeDestroyed() {
+  const size_t size = swapChainDestroyedListeners.size();
+
+  for (size_t i = 0; i < size; i++) {
+    swapChainDestroyedListeners[i]();
+  }
+}
+
+void Vulkan::EmitSwapChainCreated() {
+  const size_t size = swapChainCreatedListeners.size();
+
+  for (size_t i = 0; i < size; i++) {
+    swapChainCreatedListeners[i]();
+  }
+}
+
+void Vulkan::AddSwapChainDestroyedListener(std::function<void(void)> fn) {
+  _mainRenderer->swapChainDestroyedListeners.push_back(fn);
+}
+
+void Vulkan::AddSwapChainCreatedListener(std::function<void(void)> fn) {
+  _mainRenderer->swapChainCreatedListeners.push_back(fn);
 }

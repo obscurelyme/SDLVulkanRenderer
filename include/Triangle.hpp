@@ -18,9 +18,7 @@
 
 class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::ImGuiEditorObject {
   public:
-  Triangle(VmaAllocator alloc, VkDevice device, VkRenderPass renderPass, VkCommandBuffer command,
-           VulkanSwapchain* swapChain) :
-      allocator(alloc),
+  Triangle(VkDevice device, VkRenderPass renderPass, VkCommandBuffer command, VulkanSwapchain* swapChain) :
       logicalDevice(device),
       renderPass(renderPass),
       cmd(command),
@@ -35,13 +33,23 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
 
   ~Triangle() {
     vkDeviceWaitIdle(logicalDevice);
-    vmaDestroyBuffer(allocator, mesh.vertexBuffer.buffer, mesh.vertexBuffer.allocation);
+    DestroyBuffer(mesh.vertexBuffer);
+    CleanUpPipelines();
+  }
+
+  void CleanUpPipelines() {
     vkDestroyPipeline(logicalDevice, _pipeline, nullptr);
     vkDestroyPipeline(logicalDevice, _redTrianglePipeline, nullptr);
     vkDestroyPipeline(logicalDevice, _meshPipeline, nullptr);
+    _pipeline = VK_NULL_HANDLE;
+    _redTrianglePipeline = VK_NULL_HANDLE;
+    _meshPipeline = VK_NULL_HANDLE;
     vkDestroyPipelineLayout(logicalDevice, _pipelineBuilder._pipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, _pipelineBuilder2._pipelineLayout, nullptr);
     vkDestroyPipelineLayout(logicalDevice, _meshPipelineBuilder._pipelineLayout, nullptr);
+    _pipelineBuilder.Reset();
+    _pipelineBuilder2.Reset();
+    _meshPipelineBuilder.Reset();
   }
 
   void EditorUpdate() override {
@@ -98,13 +106,6 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
       }
     }
 
-    // if (event.keysym.scancode == SDL_SCANCODE_P && event.type == SDL_KEYUP) {
-    //   _orthoMode = false;
-    // }
-
-    // if (event.keysym.scancode == SDL_SCANCODE_O && event.type == SDL_KEYUP) {
-    //   _orthoMode = true;
-    // }
     if (event.keysym.scancode == SDL_SCANCODE_RIGHT && event.type == SDL_KEYDOWN) {
       position += glm::vec3{1.0f, 0.0f, 0.0f};
     }
@@ -112,6 +113,18 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
     if (event.keysym.scancode == SDL_SCANCODE_LEFT && event.type == SDL_KEYDOWN) {
       position += glm::vec3{-1.0f, 0.0f, 0.0f};
     }
+  }
+
+  void OnSwapChainDestroyed() { CleanUpPipelines(); }
+
+  void OnSwapChainRecreated(VkRenderPass r, VkCommandBuffer c, VulkanSwapchain* s) {
+    renderPass = r;
+    cmd = c;
+    swapChain = s;
+
+    _pipeline = MakeRGBTrianglePipeline();
+    _redTrianglePipeline = MakeRedTrianglePipeline();
+    _meshPipeline = MakeMeshPipeline();
   }
 
   private:
@@ -199,7 +212,6 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
   VkPipeline _redTrianglePipeline{VK_NULL_HANDLE};
   VkPipeline _meshPipeline{VK_NULL_HANDLE};
 
-  VmaAllocator allocator{VK_NULL_HANDLE};
   VkDevice logicalDevice{VK_NULL_HANDLE};
   VkRenderPass renderPass{VK_NULL_HANDLE};
   VkCommandBuffer cmd{VK_NULL_HANDLE};

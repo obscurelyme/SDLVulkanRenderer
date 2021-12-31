@@ -244,6 +244,19 @@ class PipelineBuilder {
     return *this;
   }
 
+  void Reset() {
+    _shaderStages.clear();
+    _vertexInputInfo = {};
+    _inputAssembly = {};
+    _viewport = {};
+    _scissor = {};
+    _rasterizer = {};
+    _colorBlendAttachment = {};
+    _multisampling = {};
+    _pipelineLayout = {};
+    _depthStencil = {};
+  }
+
   auto Build(VkDevice device, VkRenderPass renderPass) -> VkPipeline {
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;

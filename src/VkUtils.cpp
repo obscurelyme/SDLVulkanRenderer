@@ -32,6 +32,10 @@ AllocatedBuffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemo
   return newBuffer;
 }
 
+void DestroyBuffer(AllocatedBuffer allocBuffer) {
+  vmaDestroyBuffer(VulkanAllocator::allocator, allocBuffer.buffer, allocBuffer.allocation);
+}
+
 void MapMemory(const void* pData, size_t size, VmaAllocation allocation) {
   void* data;
   vmaMapMemory(VulkanAllocator::allocator, allocation, &data);

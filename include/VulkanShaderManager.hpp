@@ -54,11 +54,16 @@ class VulkanShaderManager {
   }
 
   static VkShaderModule ShaderModule(const std::string &filename) {
-    VkShaderModule module = CreateShaderModule(logicalDevice, ReadShaderFile(filename));
+    auto elem = shaders.find(filename);
+    if (elem != shaders.end()) {
+      return elem->second;
+    } else {
+      VkShaderModule module = CreateShaderModule(logicalDevice, ReadShaderFile(filename));
 
-    shaders.try_emplace(filename, module);
+      shaders.try_emplace(filename, module);
 
-    return module;
+      return module;
+    }
   }
 
   static VkShaderModule CreateShaderModule(VkDevice device, const std::vector<char> &code) {

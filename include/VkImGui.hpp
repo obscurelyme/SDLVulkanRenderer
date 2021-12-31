@@ -75,6 +75,7 @@ class VulkanImGui {
 
   static void Destroy() {
     std::cout << "=============== IMGUI DESTROY ============================" << std::endl;
+    vkDeviceWaitIdle(logicalDevice);
     vkDestroyDescriptorPool(logicalDevice, imguiPool, nullptr);
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplSDL2_Shutdown();

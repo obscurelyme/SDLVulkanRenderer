@@ -39,7 +39,7 @@ class Vulkan {
   VkInstance InstanceHandle() const;
   VkDevice LogicalDevice() const { return logicalDevice.Handle; }
 
-  void Draw2();
+  void Draw();
 
   void RecreateSwapChain();
   void FramebufferResize();
@@ -75,6 +75,12 @@ class Vulkan {
 
   void ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function);
 
+  void EmitSwapChainWillBeDestroyed();
+  void EmitSwapChainCreated();
+
+  static void AddSwapChainDestroyedListener(std::function<void(void)> function);
+  static void AddSwapChainCreatedListener(std::function<void(void)> function);
+
   /**
    * Returns the main renderer for Vulkan.
    */
@@ -108,7 +114,8 @@ class Vulkan {
   void CreateSwapChain();
   void CreateRenderPass();
   void CreateFramebuffer();
-  void CreateCommands();
+  void CreateCommands(bool recreation = false);
+  void CreateUploadCommands();
   void CreateSemaphores();
   void CreateMemoryAllocator();
   void CreateSurface();
@@ -137,18 +144,6 @@ class Vulkan {
   VkDebugUtilsMessengerEXT debugMessenger;
   VkSurfaceKHR vulkanSurface;
 
-  // VkPipelineLayout pipelineLayout;
-  // VkPipeline graphicsPipeline;
-
-  // VkCommandPool commandPool;
-  // std::vector<VkCommandBuffer> commandBuffers;
-
-  // std::vector<VkSemaphore> imageAvailableSemaphores;
-  // std::vector<VkSemaphore> renderFinishedSemaphores;
-  // std::vector<VkFence> inFlightFences;
-  // std::vector<VkFence> imagesInFlight;
-  // size_t currentFrame = 0;
-
   static int MAX_FRAMES_IN_FLIGHT;
   bool framebufferResized;
 
@@ -168,6 +163,10 @@ class Vulkan {
 
   // NOTE: use for immediate submit command steps
   UploadContext _uploadContext;
+
+  private:
+  std::vector<std::function<void(void)>> swapChainDestroyedListeners{};
+  std::vector<std::function<void(void)>> swapChainCreatedListeners{};
 };
 
 #endif
