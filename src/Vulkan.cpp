@@ -88,7 +88,17 @@ void Vulkan::CleanupSwapChain() {
   std::cout << "Cleaned up swap chain" << std::endl;
 }
 
-void Vulkan::FramebufferResize() { framebufferResized = true; }
+/**
+ * @brief Non-negotiably recreate the swapchain.
+ * Typically, tutorials will have one set a flag on window resize and wait for a non VK_SUCCESS
+ * result from either vkAcquireNextImageKHR or vkQueuePresentKHR, and then recreate the swapchain.
+ * There can be an odd issue with this with SDL2 in that the window surface is still being used
+ * due to the resize taking place, and in addition to this we are trying to change up a swapchain.
+ * The result is an odd race condition where you can see VK_ERROR_NATIVE_WINDOW_IN_USE_KHR.
+ * The result is a failure to create the swapchain with the new window size. So in order to get
+ * around this complete is to just recreate the swapchain, no questions asked.
+ */
+void Vulkan::FramebufferResize() { RecreateSwapChain(); }
 
 void Vulkan::RecreateSwapChain() {
   vkDeviceWaitIdle(logicalDevice.Handle);
