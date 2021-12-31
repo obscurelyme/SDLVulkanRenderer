@@ -111,7 +111,7 @@ void Vulkan::Draw() {
   syncUtils.WaitForFence();
   syncUtils.ResetFence();
 
-  // ImGui::Render();
+  ImGui::Render();
 
   // NOTE: Request image from the swapchain, one second timeout
   uint32_t imageIndex;
@@ -135,7 +135,7 @@ void Vulkan::Draw() {
   triangle->Draw();
   // suzanne->Draw();
 
-  // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetBuffer());
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetBuffer());
   commands.EndRecording();
 
   VkSemaphore presentSemaRef = syncUtils.PresentSemaphore();

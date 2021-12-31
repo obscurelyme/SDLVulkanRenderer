@@ -26,7 +26,7 @@ class Camera : public SDLKeyboardEventListener, public CoffeeMaker::Editor::ImGu
 
   glm::mat4 ScreenSpaceMatrix(glm::mat4 model);
 
-  void OnKeyboardEvent(const SDL_KeyboardEvent& event);
+  void OnKeyboardEvent(const SDL_KeyboardEvent& event) override;
 
   void EditorUpdate() override;
 

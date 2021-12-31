@@ -97,7 +97,7 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
     _framenumber++;
   }
 
-  void OnKeyboardEvent(const SDL_KeyboardEvent& event) {
+  void OnKeyboardEvent(const SDL_KeyboardEvent& event) override {
     if (event.keysym.scancode == SDL_SCANCODE_SPACE) {
       if (event.type == SDL_KEYDOWN) {
         _useRedPipeline = true;
