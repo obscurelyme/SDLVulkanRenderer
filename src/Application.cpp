@@ -7,6 +7,7 @@
 #include <utility>
 
 #include "Camera.hpp"
+#include "DeltaTime.hpp"
 #include "Triangle.hpp"
 #include "VkImGui.hpp"
 #include "VulkanShaderManager.hpp"
@@ -63,10 +64,14 @@ void Application::Run() {
       }
     }
 
+    CoffeeMaker::DeltaTime::CurrentTime = SDL_GetTicks();
+    CoffeeMaker::DeltaTime::SetDelta();
+
     VulkanImGui::NewFrame();
     VulkanImGui::Update();
     ImGui::ShowDemoWindow();
 
     renderer->Draw();
+    CoffeeMaker::DeltaTime::PreviousTime = CoffeeMaker::DeltaTime::CurrentTime;
   }
 }

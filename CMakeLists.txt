@@ -34,6 +34,7 @@ add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   src/VkImGui.cpp
   src/VkInitializers.cpp
   ${EDITOR_SRC}
+  src/DeltaTime.cpp
 )
 target_include_directories(HelloVulkan PRIVATE include)
 target_include_directories(HelloVulkan PRIVATE ${STB_INCLUDE_DIRS})

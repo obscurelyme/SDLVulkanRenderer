@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "Camera.hpp"
+#include "DeltaTime.hpp"
 #include "Editor/ImGuiEditorObject.hpp"
 #include "KeyboardEvent.hpp"
 #include "VulkanCommands.hpp"
@@ -64,19 +65,19 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
   void Update() {
     movement = glm::vec2{0.0f};
     if (_moveRight) {
-      movement += glm::vec2{1.0f, 0.0f} * speed;  //* 0.016f;
+      movement += glm::vec2{1.0f, 0.0f} * speed * CoffeeMaker::DeltaTime::Value();
     }
 
     if (_moveLeft) {
-      movement += glm::vec2{-1.0f, 0.0f} * speed;  //* 0.016f;
+      movement += glm::vec2{-1.0f, 0.0f} * speed * CoffeeMaker::DeltaTime::Value();
     }
 
     if (_moveUp) {
-      movement += glm::vec2{0.0f, 1.0f} * speed;  //* 0.016f;
+      movement += glm::vec2{0.0f, 1.0f} * speed * CoffeeMaker::DeltaTime::Value();
     }
 
     if (_moveDown) {
-      movement += glm::vec2{0.0f, -1.0f} * speed;  //* 0.016f;
+      movement += glm::vec2{0.0f, -1.0f} * speed * CoffeeMaker::DeltaTime::Value();
     }
 
     glm::vec3 no = glm::normalize(glm::vec3(movement, 0.0f));
@@ -276,7 +277,7 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
   glm::vec2 position{0.0f, 0.0f};
   glm::vec2 movement{0.0f};
   float rotation;
-  float speed{0.16};
+  float speed{0.016};
 
   bool _moveRight{false};
   bool _moveLeft{false};

@@ -102,7 +102,10 @@ void Vulkan::EditorUpdate() {
     if (ImGui::BeginTabItem("Physical Device")) {
       Editor_PhysicalDeviceSelection();
       ImGui::Separator();
-      Editor_PhysicalDeviceInformation();
+      if (selectedPhysicalDeviceIndex != 9999) {
+        Editor_PhysicalDeviceInformation();
+      }
+
       ImGui::EndTabItem();
     }
     if (ImGui::BeginTabItem("Logical Device")) {
@@ -144,9 +147,6 @@ void Vulkan::Editor_PhysicalDeviceSelection() {
     }
 
     ImGui::EndListBox();
-  } else {
-    // NOTE: sometimes fix debugger mode
-    selectedPhysicalDeviceIndex = 0;
   }
 }
 
@@ -243,45 +243,51 @@ void Vulkan::RecreateSwapChain() {
 
 void Vulkan::Draw() {
   triangle->Update();
-  std::cout << "Waiting for fence at " << currentFrame << " " << syncUtils.RenderFence2(currentFrame) << std::endl;
+  // std::cout << "Waiting for fence at " << currentFrame << " " << syncUtils.RenderFence2(currentFrame) << std::endl;
   syncUtils.WaitForFence2(currentFrame);
   syncUtils.ResetFence2(currentFrame);
-  std::cout << "Fence reset for " << currentFrame << " " << syncUtils.RenderFence2(currentFrame) << std::endl;
+  // std::cout << "Fence reset for " << currentFrame << " " << syncUtils.RenderFence2(currentFrame) << std::endl;
 
   ImGui::Render();
 
   // NOTE: Request image from the swapchain, one second timeout
   uint32_t imageIndex;
-  std::cout << "Getting image...." << std::endl;
+  // std::cout << "Getting image...." << std::endl;
   VkResult nxtImageResult =
       vkAcquireNextImageKHR(logicalDevice.Handle, swapChain.Handle, 1000000000,
                             syncUtils.PresentSemaphore2(currentFrame), VK_NULL_HANDLE, &imageIndex);
-  std::cout << "Got image" << std::endl;
+  // std::cout << "Got image" << std::endl;
 
-  std::cout << "Image In Flight Value: " << syncUtils.imagesInFlight[imageIndex] << std::endl;
+  // std::cout << "Image In Flight Value: " << syncUtils.imagesInFlight[imageIndex] << std::endl;
   // Check if a previous frame is using this image (i.e. there is its fence to wait on)
   if (syncUtils.imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-    std::cout << "Waiting for image in flight: " << imageIndex << " " << syncUtils.imagesInFlight[imageIndex]
-              << std::endl;
-    vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
-    std::cout << "Done waiting for image in flight: " << imageIndex << std::endl;
+    // std::cout << "Waiting for image in flight: " << imageIndex << " " << syncUtils.imagesInFlight[imageIndex]
+    //           << std::endl;
+    // VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE,
+    // UINT32_MAX);
+    VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, 0);
+    if (r != VK_SUCCESS && r != VK_TIMEOUT) {
+      std::cout << r << std::endl;
+      abort();
+    }
+    // std::cout << "Done waiting for image in flight: " << imageIndex << std::endl;
   }
   // Mark the image as now being in use by this frame
-  std::cout << "Marking image in flight: " << imageIndex << " to frame " << currentFrame << std::endl;
+  // std::cout << "Marking image in flight: " << imageIndex << " to frame " << currentFrame << std::endl;
   syncUtils.imagesInFlight[imageIndex] = syncUtils.RenderFence2(currentFrame);
-  std::cout << "Marked image in flight: " << imageIndex << " to fence " << syncUtils.imagesInFlight[imageIndex]
-            << std::endl;
+  // std::cout << "Marked image in flight: " << imageIndex << " to fence " << syncUtils.imagesInFlight[imageIndex]
+  // << std::endl;
 
   if (nxtImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
-    std::cout << "Implicit Recreation" << std::endl;
+    // std::cout << "Implicit Recreation" << std::endl;
     RecreateSwapChain();
-    std::cout << "Implicit Recreation Done" << std::endl;
+    // std::cout << "Implicit Recreation Done" << std::endl;
   } else if (nxtImageResult != VK_SUCCESS) {
     SimpleMessageBox::ShowError("Drawing Error", fmt::format("Vulkan Error Code: [{}]", nxtImageResult));
   }
 
   commands.CurrentCmdBufferIndex = imageIndex;
-  std::cout << "Using command buffers at " << imageIndex << std::endl;
+  // std::cout << "Using command buffers at " << imageIndex << std::endl;
   commands.ResetCommandBuffers2(imageIndex);
   float flash = std::abs(std::sin(framecount / 120.f));
   commands.SetRenderClearColor({0.0f, 0.0f, flash, 1.0f});
@@ -314,12 +320,12 @@ void Vulkan::Draw() {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = &renderSemaRef;
 
-  std::cout << "Reset Fence before queuing " << currentFrame << " " << syncUtils.inFlightFences[currentFrame]
-            << std::endl;
+  // std::cout << "Reset Fence before queuing " << currentFrame << " " << syncUtils.inFlightFences[currentFrame]
+  //           << std::endl;
   vkResetFences(logicalDevice.Handle, 1, &syncUtils.inFlightFences[currentFrame]);
-  std::cout << "Queuing..." << std::endl;
+  // std::cout << "Queuing..." << std::endl;
   vkQueueSubmit(logicalDevice.GraphicsQueue, 1, &submitInfo, syncUtils.RenderFence2(currentFrame));
-  std::cout << "Queued" << std::endl;
+  // std::cout << "Queued" << std::endl;
 
   VkPresentInfoKHR presentInfo{};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -332,15 +338,15 @@ void Vulkan::Draw() {
   presentInfo.pImageIndices = &imageIndex;
   presentInfo.pResults = nullptr;  // Optional
 
-  std::cout << "Presenting..." << std::endl;
+  // std::cout << "Presenting..." << std::endl;
   VkResult presentResult = vkQueuePresentKHR(logicalDevice.PresentQueue, &presentInfo);
-  std::cout << "Presented" << std::endl;
+  // std::cout << "Presented" << std::endl;
 
   if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || framebufferResized) {
     framebufferResized = false;
-    std::cout << "Explicit Recreation" << std::endl;
+    // std::cout << "Explicit Recreation" << std::endl;
     RecreateSwapChain();
-    std::cout << "Explicit Recreation Done" << std::endl;
+    // std::cout << "Explicit Recreation Done" << std::endl;
   } else if (presentResult != VK_SUCCESS) {
     throw std::runtime_error("failed to present swap chain image!");
   }
@@ -555,7 +561,7 @@ bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
 
   fmt::print("Checking device: {}\n", device.ToString());
 
-// #define FORCE_INTEGRATED_GPU
+#define FORCE_INTEGRATED_GPU
 #ifdef FORCE_INTEGRATED_GPU
   bool result =
       device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsIntegratedGPU();
