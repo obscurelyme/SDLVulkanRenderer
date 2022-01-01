@@ -199,6 +199,7 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
     MapMemory(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex), mesh.vertexBuffer.allocation);
     // Flush allocation as it *may* not be in GPU cache after mapping
     FlushMemory(mesh.vertexBuffer.allocation, 0, mesh.vertices.size() * sizeof(Vertex));
+    UnmapMemory(mesh.vertexBuffer.allocation);
   }
 
   VkPipeline MakeRGBTrianglePipeline() {

@@ -30,6 +30,8 @@ void DestroyBuffer(AllocatedBuffer allocBuffer);
 
 void MapMemory(const void* pData, size_t size, VmaAllocation allocation);
 
+void UnmapMemory(VmaAllocation allocation);
+
 void FlushMemory(VmaAllocation allocation, VkDeviceSize offset, VkDeviceSize size);
 
 #endif

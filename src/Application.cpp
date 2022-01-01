@@ -68,7 +68,5 @@ void Application::Run() {
     ImGui::ShowDemoWindow();
 
     renderer->Draw();
-
-    // SDL_Delay(16);
   }
 }

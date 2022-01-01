@@ -48,8 +48,9 @@ void MapMemory(const void* pData, size_t size, VmaAllocation allocation) {
   void* data;
   vmaMapMemory(VulkanAllocator::allocator, allocation, &data);
   memcpy(data, pData, size);
-  vmaUnmapMemory(VulkanAllocator::allocator, allocation);
 }
+
+void UnmapMemory(VmaAllocation allocation) { vmaUnmapMemory(VulkanAllocator::allocator, allocation); }
 
 void FlushMemory(VmaAllocation allocation, VkDeviceSize offset, VkDeviceSize size) {
   vmaFlushAllocation(VulkanAllocator::allocator, allocation, offset, size);

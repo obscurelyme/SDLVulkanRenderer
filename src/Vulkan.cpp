@@ -260,7 +260,7 @@ void Vulkan::Draw() {
   if (syncUtils.imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
     std::cout << "Waiting for image in flight: " << imageIndex << " " << syncUtils.imagesInFlight[imageIndex]
               << std::endl;
-    vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, 1000000000);
+    vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, UINT64_MAX);
     std::cout << "Done waiting for image in flight: " << imageIndex << std::endl;
   }
   // Mark the image as now being in use by this frame
@@ -552,7 +552,7 @@ bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
 
   fmt::print("Checking device: {}\n", device.ToString());
 
-#define FORCE_INTEGRATED_GPU
+// #define FORCE_INTEGRATED_GPU
 #ifdef FORCE_INTEGRATED_GPU
   bool result =
       device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsIntegratedGPU();
