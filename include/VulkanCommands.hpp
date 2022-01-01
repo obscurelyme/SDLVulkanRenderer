@@ -41,7 +41,8 @@ class VulkanCommands {
 
   void FreeCommandBuffers() {
     if (_logicalDevice != nullptr && _logicalDevice->Handle != VK_NULL_HANDLE) {
-      vkFreeCommandBuffers(_logicalDevice->Handle, _commandPool, static_cast<uint32_t>(1), &_mainCommandBuffer);
+      vkFreeCommandBuffers(_logicalDevice->Handle, _commandPool, static_cast<uint32_t>(CommandBuffers.size()),
+                           CommandBuffers.data());
     }
   }
 
@@ -71,17 +72,23 @@ class VulkanCommands {
   }
 
   void CreateCommandBuffers() {
+    CommandBuffers.resize(_framebuffer->FramebufferHandles.size());
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = _commandPool;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(1);
+    allocInfo.commandBufferCount = static_cast<uint32_t>(CommandBuffers.size());
 
-    VkResult result = vkAllocateCommandBuffers(_logicalDevice->Handle, &allocInfo, &_mainCommandBuffer);
+    VkResult result = vkAllocateCommandBuffers(_logicalDevice->Handle, &allocInfo, CommandBuffers.data());
+    // VkResult result = vkAllocateCommandBuffers(_logicalDevice->Handle, &allocInfo, &_mainCommandBuffer);
     if (result != VK_SUCCESS) {
       SimpleMessageBox::ShowError("Vulkan Command Buffers",
                                   fmt::format("Unable to create command buffers.\nVulkan Error Code: [{}]", result));
     }
+  }
+
+  void ResetCommandBuffers2(size_t swapChainImageIndex) {
+    vkResetCommandBuffer(CommandBuffers[swapChainImageIndex], 0);
   }
 
   void ResetCommandBuffers() { vkResetCommandBuffer(_mainCommandBuffer, 0); }
@@ -92,7 +99,7 @@ class VulkanCommands {
     beginInfo.flags = 0;                   // Optional
     beginInfo.pInheritanceInfo = nullptr;  // Optional
 
-    vkBeginCommandBuffer(_mainCommandBuffer, &beginInfo);
+    vkBeginCommandBuffer(CommandBuffers[swapchainImageIndex], &beginInfo);
 
     // Start the render pass
     VkRenderPassBeginInfo renderPassInfo{};
@@ -104,7 +111,7 @@ class VulkanCommands {
     renderPassInfo.clearValueCount = clearValues.size();
     renderPassInfo.pClearValues = clearValues.data();
 
-    vkCmdBeginRenderPass(_mainCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(CommandBuffers[swapchainImageIndex], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
   }
 
   void SetRenderClearColor(VkClearColorValue color) { clearColor.color = color; }
@@ -112,15 +119,17 @@ class VulkanCommands {
   void Prerecord() {
     BeginRecording(0);
     vkCmdDraw(_mainCommandBuffer, 3, 1, 0, 0);
-    EndRecording();
+    EndRecording(0);
   }
 
-  void EndRecording() {
-    vkCmdEndRenderPass(_mainCommandBuffer);
-    vkEndCommandBuffer(_mainCommandBuffer);
+  void EndRecording(size_t swapchainImageIndex) {
+    vkCmdEndRenderPass(CommandBuffers[swapchainImageIndex]);
+    vkEndCommandBuffer(CommandBuffers[swapchainImageIndex]);
   }
 
   VkCommandBuffer& GetBuffer() { return _mainCommandBuffer; }
+
+  VkCommandBuffer& GetCurrentBuffer() { return CommandBuffers[CurrentCmdBufferIndex]; }
 
   private:
   VulkanLogicalDevice* _logicalDevice{nullptr};
@@ -129,12 +138,15 @@ class VulkanCommands {
   VulkanRenderPass* _renderPass{nullptr};
   VulkanFramebuffer* _framebuffer{nullptr};
   VkCommandPool _commandPool{VK_NULL_HANDLE};
-  // std::vector<VkCommandBuffer> _commandBuffers;
 
   VkCommandBuffer _mainCommandBuffer{VK_NULL_HANDLE};
   VkClearValue clearColor;
   VkClearValue depthClear;
   std::array<VkClearValue, 2> clearValues;
+
+  public:
+  size_t CurrentCmdBufferIndex{0};
+  std::vector<VkCommandBuffer> CommandBuffers{};
 };
 
 #endif

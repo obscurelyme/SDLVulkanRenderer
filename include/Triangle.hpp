@@ -10,6 +10,7 @@
 #include "Camera.hpp"
 #include "Editor/ImGuiEditorObject.hpp"
 #include "KeyboardEvent.hpp"
+#include "VulkanCommands.hpp"
 #include "VulkanGraphicsPipeline.hpp"
 #include "VulkanMesh.hpp"
 #include "VulkanShaderManager.hpp"
@@ -18,10 +19,10 @@
 
 class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::ImGuiEditorObject {
   public:
-  Triangle(VkDevice device, VkRenderPass renderPass, VkCommandBuffer command, VulkanSwapchain* swapChain) :
+  Triangle(VkDevice device, VkRenderPass renderPass, VulkanCommands* commands, VulkanSwapchain* swapChain) :
       logicalDevice(device),
       renderPass(renderPass),
-      cmd(command),
+      cmds(commands),
       swapChain(swapChain),
       _mainCamera(Camera::MainCamera()) {
     CreateTriangleMesh();
@@ -84,6 +85,7 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
   }
 
   void Draw() {
+    VkCommandBuffer cmd = cmds->GetCurrentBuffer();
     if (_useRedPipeline) {
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _redTrianglePipeline);
       vkCmdDraw(cmd, 3, 1, 0, 0);
@@ -164,9 +166,9 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
 
   void OnSwapChainDestroyed() { CleanUpPipelines(); }
 
-  void OnSwapChainRecreated(VkRenderPass r, VkCommandBuffer c, VulkanSwapchain* s) {
+  void OnSwapChainRecreated(VkRenderPass r, VulkanCommands* c, VulkanSwapchain* s) {
     renderPass = r;
-    cmd = c;
+    cmds = c;
     swapChain = s;
 
     _pipeline = MakeRGBTrianglePipeline();
@@ -264,7 +266,7 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
 
   VkDevice logicalDevice{VK_NULL_HANDLE};
   VkRenderPass renderPass{VK_NULL_HANDLE};
-  VkCommandBuffer cmd{VK_NULL_HANDLE};
+  VulkanCommands* cmds{nullptr};
   VulkanSwapchain* swapChain{nullptr};
   bool _useRedPipeline{false};
   int _framenumber{0};

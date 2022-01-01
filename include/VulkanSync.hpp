@@ -4,6 +4,8 @@
 #include <fmt/core.h>
 #include <vulkan/vulkan.h>
 
+#include <vector>
+
 #include "SimpleMessageBox.hpp"
 
 class VulkanSync {
@@ -14,7 +16,11 @@ class VulkanSync {
       _fenceInfo({}),
       _presentSemaphore(VK_NULL_HANDLE),
       _renderSemaphore(VK_NULL_HANDLE),
-      _renderFence(VK_NULL_HANDLE) {}
+      _renderFence(VK_NULL_HANDLE) {
+    _presentSemaphores.resize(2);
+    _renderSemaphores.resize(2);
+    inFlightFences.resize(2);
+  }
 
   ~VulkanSync() {
     if (_logicalDevice != nullptr && _logicalDevice->Handle != nullptr) {
@@ -30,6 +36,11 @@ class VulkanSync {
       _presentSemaphore = VK_NULL_HANDLE;
       _renderSemaphore = VK_NULL_HANDLE;
       _renderFence = VK_NULL_HANDLE;
+    }
+    for (int i = 0; i < 2; i++) {
+      vkDestroySemaphore(_logicalDevice->Handle, _renderSemaphores[i], nullptr);
+      vkDestroySemaphore(_logicalDevice->Handle, _presentSemaphores[i], nullptr);
+      vkDestroyFence(_logicalDevice->Handle, inFlightFences[i], nullptr);
     }
   }
 
@@ -69,17 +80,36 @@ class VulkanSync {
     }
   }
 
+  /**
+   * Builds the array of semaphores
+   * needed for accounting for GPUs running slower than the CPU
+   */
+  void Build2() {
+    for (int i = 0; i < 2; i++) {
+      vkCreateSemaphore(_logicalDevice->Handle, &_semaphoreInfo, nullptr, &_presentSemaphores[i]);
+      vkCreateSemaphore(_logicalDevice->Handle, &_semaphoreInfo, nullptr, &_renderSemaphores[i]);
+      vkCreateFence(_logicalDevice->Handle, &_fenceInfo, nullptr, &inFlightFences[i]);
+    }
+  }
+
   void WaitForFence() { vkWaitForFences(_logicalDevice->Handle, 1, &_renderFence, true, 1000000000); }
+
+  void WaitForFence2(size_t i) { vkWaitForFences(_logicalDevice->Handle, 1, &inFlightFences[i], true, 1000000000); }
 
   void ResetFence() { vkResetFences(_logicalDevice->Handle, 1, &_renderFence); }
 
-  VkSemaphore RenderSemaphore() { return _renderSemaphore; }
+  void ResetFence2(size_t i) { vkResetFences(_logicalDevice->Handle, 1, &inFlightFences[i]); }
 
+  VkSemaphore RenderSemaphore() { return _renderSemaphore; }
   VkSemaphore PresentSemaphore() { return _presentSemaphore; }
 
-  VkFence RenderFence() { return _renderFence; }
+  VkSemaphore RenderSemaphore2(size_t i) { return _renderSemaphores[i]; }
+  VkSemaphore PresentSemaphore2(size_t i) { return _presentSemaphores[i]; }
 
-  private:
+  VkFence RenderFence() { return _renderFence; }
+  VkFence RenderFence2(size_t i) { return inFlightFences[i]; }
+
+  public:
   VulkanLogicalDevice* _logicalDevice;
 
   VkSemaphoreCreateInfo _semaphoreInfo;
@@ -88,6 +118,11 @@ class VulkanSync {
   VkSemaphore _presentSemaphore;
   VkSemaphore _renderSemaphore;
   VkFence _renderFence;
+
+  std::vector<VkSemaphore> _presentSemaphores{};
+  std::vector<VkSemaphore> _renderSemaphores{};
+  std::vector<VkFence> inFlightFences{};
+  std::vector<VkFence> imagesInFlight{};
 };
 
 #endif

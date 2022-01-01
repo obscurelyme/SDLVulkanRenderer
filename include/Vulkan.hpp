@@ -159,6 +159,7 @@ class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
   VulkanRenderPass renderPass;
   VulkanFramebuffer framebuffer;
   VulkanSync syncUtils;
+  size_t currentFrame{0};
   int framecount;
 
   Triangle *triangle;

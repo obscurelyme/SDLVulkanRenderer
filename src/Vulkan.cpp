@@ -66,7 +66,7 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateSemaphores();
   InitSyncStructures();
   _mainRenderer = this;
-  triangle = new Triangle(logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  triangle = new Triangle(logicalDevice.Handle, renderPass.Handle, &commands, &swapChain);
   // suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
 
@@ -144,8 +144,6 @@ void Vulkan::Editor_PhysicalDeviceSelection() {
     }
 
     ImGui::EndListBox();
-  } else {
-    selectedPhysicalDeviceIndex = 0;
   }
 }
 
@@ -235,22 +233,41 @@ void Vulkan::RecreateSwapChain() {
   CreateCommands(true);
   // TODO: Nofity all pipelines and layouts to be created...
   EmitSwapChainCreated();
-  triangle->OnSwapChainRecreated(renderPass.Handle, commands.GetBuffer(), &swapChain);
+  triangle->OnSwapChainRecreated(renderPass.Handle, &commands, &swapChain);
   Camera::SetMainCameraDimensions(physicalDevice.SwapChainSupport.capabilities.currentExtent.width,
                                   physicalDevice.SwapChainSupport.capabilities.currentExtent.height);
 }
 
 void Vulkan::Draw() {
   triangle->Update();
-  syncUtils.WaitForFence();
-  syncUtils.ResetFence();
+  std::cout << "Waiting for fence at " << currentFrame << " " << syncUtils.RenderFence2(currentFrame) << std::endl;
+  syncUtils.WaitForFence2(currentFrame);
+  syncUtils.ResetFence2(currentFrame);
+  std::cout << "Fence reset for " << currentFrame << " " << syncUtils.RenderFence2(currentFrame) << std::endl;
 
   ImGui::Render();
 
   // NOTE: Request image from the swapchain, one second timeout
   uint32_t imageIndex;
-  VkResult nxtImageResult = vkAcquireNextImageKHR(logicalDevice.Handle, swapChain.Handle, 1000000000,
-                                                  syncUtils.PresentSemaphore(), VK_NULL_HANDLE, &imageIndex);
+  std::cout << "Getting image...." << std::endl;
+  VkResult nxtImageResult =
+      vkAcquireNextImageKHR(logicalDevice.Handle, swapChain.Handle, 1000000000,
+                            syncUtils.PresentSemaphore2(currentFrame), VK_NULL_HANDLE, &imageIndex);
+  std::cout << "Got image" << std::endl;
+
+  std::cout << "Image In Flight Value: " << syncUtils.imagesInFlight[imageIndex] << std::endl;
+  // Check if a previous frame is using this image (i.e. there is its fence to wait on)
+  if (syncUtils.imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+    std::cout << "Waiting for image in flight: " << imageIndex << " " << syncUtils.imagesInFlight[imageIndex]
+              << std::endl;
+    vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, 1000000000);
+    std::cout << "Done waiting for image in flight: " << imageIndex << std::endl;
+  }
+  // Mark the image as now being in use by this frame
+  std::cout << "Marking image in flight: " << imageIndex << " to frame " << currentFrame << std::endl;
+  syncUtils.imagesInFlight[imageIndex] = syncUtils.RenderFence2(currentFrame);
+  std::cout << "Marked image in flight: " << imageIndex << " to fence " << syncUtils.imagesInFlight[imageIndex]
+            << std::endl;
 
   if (nxtImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
     std::cout << "Implicit Recreation" << std::endl;
@@ -260,7 +277,9 @@ void Vulkan::Draw() {
     SimpleMessageBox::ShowError("Drawing Error", fmt::format("Vulkan Error Code: [{}]", nxtImageResult));
   }
 
-  commands.ResetCommandBuffers();
+  commands.CurrentCmdBufferIndex = imageIndex;
+  std::cout << "Using command buffers at " << imageIndex << std::endl;
+  commands.ResetCommandBuffers2(imageIndex);
   float flash = std::abs(std::sin(framecount / 120.f));
   commands.SetRenderClearColor({0.0f, 0.0f, flash, 1.0f});
 
@@ -269,12 +288,12 @@ void Vulkan::Draw() {
   triangle->Draw();
   // suzanne->Draw();
 
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetBuffer());
-  commands.EndRecording();
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetCurrentBuffer());
+  commands.EndRecording(imageIndex);
 
-  VkSemaphore presentSemaRef = syncUtils.PresentSemaphore();
-  VkSemaphore renderSemaRef = syncUtils.RenderSemaphore();
-  VkCommandBuffer cmd = commands.GetBuffer();
+  VkSemaphore presentSemaRef = syncUtils.PresentSemaphore2(currentFrame);
+  VkSemaphore renderSemaRef = syncUtils.RenderSemaphore2(currentFrame);
+  VkCommandBuffer cmd = commands.GetCurrentBuffer();
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -292,7 +311,12 @@ void Vulkan::Draw() {
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = &renderSemaRef;
 
-  vkQueueSubmit(logicalDevice.GraphicsQueue, 1, &submitInfo, syncUtils.RenderFence());
+  std::cout << "Reset Fence before queuing " << currentFrame << " " << syncUtils.inFlightFences[currentFrame]
+            << std::endl;
+  vkResetFences(logicalDevice.Handle, 1, &syncUtils.inFlightFences[currentFrame]);
+  std::cout << "Queuing..." << std::endl;
+  vkQueueSubmit(logicalDevice.GraphicsQueue, 1, &submitInfo, syncUtils.RenderFence2(currentFrame));
+  std::cout << "Queued" << std::endl;
 
   VkPresentInfoKHR presentInfo{};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -305,7 +329,9 @@ void Vulkan::Draw() {
   presentInfo.pImageIndices = &imageIndex;
   presentInfo.pResults = nullptr;  // Optional
 
+  std::cout << "Presenting..." << std::endl;
   VkResult presentResult = vkQueuePresentKHR(logicalDevice.PresentQueue, &presentInfo);
+  std::cout << "Presented" << std::endl;
 
   if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || framebufferResized) {
     framebufferResized = false;
@@ -316,6 +342,7 @@ void Vulkan::Draw() {
     throw std::runtime_error("failed to present swap chain image!");
   }
   framecount++;
+  currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;  // Forced alternating value of 0 and 1
 }
 
 void Vulkan::InitVulkan() {
@@ -632,7 +659,9 @@ void Vulkan::CreateSemaphores() {
   syncUtils.SetLogicalDevice(&logicalDevice);
   syncUtils.CreateSemaphores();
   syncUtils.CreateRenderFence();
+  syncUtils.imagesInFlight.resize(swapChain.GetImageCount(), VK_NULL_HANDLE);
   syncUtils.Build();
+  syncUtils.Build2();
 }
 
 void Vulkan::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function) {
