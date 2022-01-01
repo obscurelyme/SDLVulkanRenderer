@@ -144,6 +144,9 @@ void Vulkan::Editor_PhysicalDeviceSelection() {
     }
 
     ImGui::EndListBox();
+  } else {
+    // NOTE: sometimes fix debugger mode
+    selectedPhysicalDeviceIndex = 0;
   }
 }
 
