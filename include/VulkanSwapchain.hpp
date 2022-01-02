@@ -60,15 +60,15 @@ class VulkanSwapchain {
   }
 
   void ChoosePresentationMode() {
-    for (const auto& availablePresentMode : _physicalDevice->SwapChainSupport.presentModes) {
-      if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-        // Leverage triple buffering if we can.
-        _presentMode = availablePresentMode;
-        return;
-      }
-    }
+    // for (const auto& availablePresentMode : _physicalDevice->SwapChainSupport.presentModes) {
+    //   if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+    //     // Leverage triple buffering if we can.
+    //     _presentMode = availablePresentMode;
+    //     return;
+    //   }
+    // }
 
-    // else, fallback to double buffering
+    // Use V-Sync
     _presentMode = VK_PRESENT_MODE_FIFO_KHR;
   }
 
@@ -85,7 +85,7 @@ class VulkanSwapchain {
     VulkanSwapChainSupportDetails details = _physicalDevice->SwapChainSupport;
     VulkanQueueFamilyIndices indices = _physicalDevice->QueueFamilies;
 
-    _imageCount = details.capabilities.minImageCount + 1;  // remove here for now...
+    _imageCount = details.capabilities.minImageCount + 1;
     if (details.capabilities.maxImageCount > 0 && _imageCount > details.capabilities.maxImageCount) {
       _imageCount = details.capabilities.maxImageCount;
     }

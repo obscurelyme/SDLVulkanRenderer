@@ -59,6 +59,7 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
     ImGui::Text("Position: (%f,%f,%f)", 0.0f, 0.0f, 0.0f);
     ImGui::InputFloat("xPos", &position.x, 1.0f, 5.0f);
     ImGui::InputFloat("yPos", &position.y, 1.0f, 5.0f);
+    ImGui::InputFloat("zPos", &zIndex, 1.0f, 10.0f);
     ImGui::End();
   }
 
@@ -97,11 +98,11 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
 
       glm::mat4 model = glm::mat4{1.0f};
       if (_orthoMode) {
-        model = glm::translate(model, glm::vec3(position, 0.0f));  // vec3 is the position of this object
+        model = glm::translate(model, glm::vec3(position, zIndex));  // vec3 is the position of this object
         // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
         // model = glm::scale(model, glm::vec3{10, 10, 10});
       } else {
-        model = glm::translate(model, glm::vec3(position, 0.0f));  // vec3 is the position of this object
+        model = glm::translate(model, glm::vec3(position, zIndex));  // vec3 is the position of this object
         // model = glm::rotate(model, glm::radians(_framenumber * 0.4f), glm::vec3{0, 0, 1});
         // model = glm::scale(model, glm::vec3{.1, .1, .1});
       }
@@ -283,6 +284,7 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
   bool _moveLeft{false};
   bool _moveUp{false};
   bool _moveDown{false};
+  float zIndex{0.0f};
 };
 
 #endif

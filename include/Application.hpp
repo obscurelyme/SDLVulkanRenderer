@@ -5,6 +5,7 @@
 
 #include "SDL2/SDL.h"
 #include "Vulkan.hpp"
+#include "Window.hpp"
 
 class Application {
   public:

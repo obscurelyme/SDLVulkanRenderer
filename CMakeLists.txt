@@ -4,8 +4,9 @@ set(VCPKG_MANIFEST_MODE TRUE)
 
 set(C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
-project(HelloVulkan VERSION 0.1.0)
+project(CoffeeRender VERSION 0.1.0)
 
+find_package(OpenGL REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(SDL2 CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
@@ -18,7 +19,7 @@ find_package(sdl2-image CONFIG REQUIRED)
 
 set(EDITOR_SRC src/Editor/ImGuiEditorObject.cpp)
 
-add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
+add_executable(CoffeeRender WIN32 MACOSX_BUNDLE
   src/main.cpp
   src/Vulkan.cpp
   src/Application.cpp
@@ -36,13 +37,19 @@ add_executable(HelloVulkan WIN32 MACOSX_BUNDLE
   ${EDITOR_SRC}
   src/DeltaTime.cpp
   src/Rectangle.cpp
+  src/Window.cpp
+  src/Renderer/Vulkan/Pipeline.cpp
+  src/Renderer/Vulkan/RenderPass.cpp
+  src/Renderer/Vulkan/LogicalDevice.cpp
+  src/Renderer/Vulkan/Swapchain.cpp
 )
-target_include_directories(HelloVulkan PRIVATE include)
-target_include_directories(HelloVulkan PRIVATE ${STB_INCLUDE_DIRS})
+target_include_directories(CoffeeRender PRIVATE include)
+target_include_directories(CoffeeRender PRIVATE ${STB_INCLUDE_DIRS})
+target_include_directories(CoffeeRender PRIVATE  ${OPENGL_INCLUDE_DIRS})
 
 if (VULKAN_FOUND)
   message(STATUS "Found Vulkan... ${Vulkan_LIBRARIES}")
-  target_link_libraries(HelloVulkan PRIVATE ${Vulkan_LIBRARIES}
+  target_link_libraries(CoffeeRender PRIVATE ${Vulkan_LIBRARIES}
     glm::glm
     SDL2::SDL2
     SDL2::SDL2main
@@ -52,11 +59,13 @@ if (VULKAN_FOUND)
     tinyobjloader::tinyobjloader
     imgui::imgui
     SDL2::SDL2_image
+    ${OPENGL_LIBRARIES}
   )
-  target_include_directories(HelloVulkan PUBLIC ${Vulkan_INCLUDE_DIRS})
+  target_include_directories(CoffeeRender PUBLIC ${Vulkan_INCLUDE_DIRS})
 else()
   message(FATAL_ERROR "Unable to find VulkanSDK. Please confirm you have Vulkan properly set up for this environment.")
 endif()
+
 
 add_compile_definitions(VK_ENABLE_BETA_EXTENSIONS)
 # Needed for Vulkan Z-range [0,1] rather than OpenGL [-1,1]
@@ -65,7 +74,7 @@ add_compile_definitions(GLM_FORCE_LEFT_HANDED)
 add_compile_definitions(GLM_FORCE_RADIANS)
 
 if (APPLE)
-  set_target_properties(HelloVulkan PROPERTIES
+  set_target_properties(CoffeeRender PROPERTIES
     BUNDLE TRUE
     MACOSX_BUNDLE_GUI_IDENTIFIER obscurelyme.vulkan-demo
     MACOSX_BUNDLE_BUNDLE_NAME "Vulkan Demo"

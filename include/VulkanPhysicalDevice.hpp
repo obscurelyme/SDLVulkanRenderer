@@ -129,6 +129,8 @@ class VulkanPhysicalDevice {
     return PhysicalDevices;
   }
 
+  static void ClearAllPhysicalDevices() { PhysicalDevices.clear(); }
+
   static std::vector<std::string> GetAllPhysicalDeviceInfo() {
     std::vector<std::string> physicalDeviceNames{};
 

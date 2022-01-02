@@ -30,9 +30,9 @@ void Camera::SetCameraDimensions(uint32_t extentWidth, uint32_t extentHeight) {
   width = extentWidth;
   height = extentHeight;
   orthographicProj =
-      glm::ortho(-1.0f * (width / 2.0f), (width / 2.0f), (height / 2.0f), -1.0f * (height / 2.0f), -1000.0f, 1000.0f);
+      glm::ortho(-1.0f * (width / 2.0f), (width / 2.0f), (height / 2.0f), -1.0f * (height / 2.0f), 0.1f, 1000.0f);
   perspectiveProj =
-      glm::perspective(glm::radians(_fov), static_cast<float>(width) / static_cast<float>(height), 0.1f, 200.0f);
+      glm::perspective(glm::radians(_fov), static_cast<float>(width) / static_cast<float>(height), 0.1f, 1000.0f);
   view = glm::translate(glm::mat4{1.0f}, position);
 }
 

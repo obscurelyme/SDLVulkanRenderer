@@ -26,10 +26,10 @@ Application::Application(std::string name, int windowWidth, int windowHeight) : 
   }
 
   icon = IMG_Load(fmt::format("{}{}", SDL_GetBasePath(), "mug.png").c_str());
-  Uint32 flags = SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_BORDERLESS;
-  window = SDL_CreateWindow(appName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowWidth,
-                            windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-  SDL_SetWindowIcon(window, icon);
+  window = CoffeeMaker::Window::CreateWindow(appName, windowWidth, windowHeight);
+  CoffeeMaker::Window::SetWindowIcon(icon);
+  SDL_FreeSurface(icon);
+
   Camera::CreateMainCamera(windowWidth, windowHeight);
   renderer = new Vulkan(appName, window);
   VulkanImGui::Init(window, renderer);
@@ -38,7 +38,7 @@ Application::Application(std::string name, int windowWidth, int windowHeight) : 
 Application::~Application() {
   VulkanImGui::Destroy();
   delete renderer;
-  SDL_DestroyWindow(window);
+  CoffeeMaker::Window::DestroyWindow();
   IMG_Quit();
   SDL_Quit();
 }
@@ -56,7 +56,6 @@ void Application::Run() {
       }
       if (event.type == SDL_WINDOWEVENT) {
         if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-          std::cout << fmt::format("Window resized: ({},{})", event.window.data1, event.window.data2) << std::endl;
           renderer->FramebufferResize();
         }
       }

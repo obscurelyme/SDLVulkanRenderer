@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "Renderer/Vulkan/Pipeline.hpp"
 #include "VulkanTypes.hpp"
 #include "glm/glm.hpp"
 
@@ -25,6 +26,7 @@ struct Vertex {
    * description, which is why this method is static.
    */
   static VertexInputDescription Description();
+  static CoffeeMaker::Renderer::Vulkan::VertexInputDescription Description2();
 };
 
 struct Mesh {

@@ -3,16 +3,19 @@
 
 #include <vulkan/vulkan.h>
 
+#include "Camera.hpp"
+#include "Renderer/Vulkan/Pipeline.hpp"
 #include "VulkanCommands.hpp"
-#include "VulkanGraphicsPipeline.hpp"
 #include "VulkanMesh.hpp"
 #include "VulkanSwapchain.hpp"
 
 namespace CoffeeMaker::Primitives {
 
   class Rectangle {
+    using Pipeline = CoffeeMaker::Renderer::Vulkan::Pipeline;
+
     public:
-    Rectangle(VkDevice device, VkRenderPass renderPass, VulkanCommands* commands, VulkanSwapchain* swapChain);
+    Rectangle(VulkanCommands* commands, VulkanSwapchain* swapChain);
     ~Rectangle();
 
     Mesh mesh{};
@@ -26,12 +29,10 @@ namespace CoffeeMaker::Primitives {
     float w{0.0f};
     float h{0.0f};
 
-    PipelineBuilder pipelineBuilder;
-    VkPipeline pipeline{VK_NULL_HANDLE};
-    VkDevice logicalDevice{VK_NULL_HANDLE};
-    VkRenderPass renderPass{VK_NULL_HANDLE};
+    Pipeline pipelineBuilder;
     VulkanCommands* cmds{nullptr};
     VulkanSwapchain* swapChain{nullptr};
+    std::shared_ptr<Camera> _mainCamera;
   };
 
 }  // namespace CoffeeMaker::Primitives

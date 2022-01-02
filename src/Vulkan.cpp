@@ -9,6 +9,8 @@
 #include <vector>
 
 #include "Camera.hpp"
+#include "Renderer/Vulkan/LogicalDevice.hpp"
+#include "Renderer/Vulkan/RenderPass.hpp"
 #include "VkInitializers.hpp"
 #include "VulkanAllocator.hpp"
 #include "VulkanShaderManager.hpp"
@@ -66,7 +68,7 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateSemaphores();
   InitSyncStructures();
   _mainRenderer = this;
-  rectangle = new CoffeeMaker::Primitives::Rectangle(logicalDevice.Handle, renderPass.Handle, &commands, &swapChain);
+  rectangle = new CoffeeMaker::Primitives::Rectangle(&commands, &swapChain);
   triangle = new Triangle(logicalDevice.Handle, renderPass.Handle, &commands, &swapChain);
   // suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
@@ -92,6 +94,7 @@ Vulkan::~Vulkan() {
   VulkanShaderManager::CleanAllShaders();
   VulkanAllocator::DestroyAllocator();
   logicalDevice.DestroyHandle();
+  VulkanPhysicalDevice::ClearAllPhysicalDevices();
   if (vulkanInstanceInitialized) {
     vkDestroySurfaceKHR(vulkanInstance, vulkanSurface, nullptr);
     vkDestroyInstance(vulkanInstance, nullptr);
@@ -259,7 +262,7 @@ void Vulkan::Draw() {
   if (syncUtils.imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
     // VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE,
     // UINT32_MAX);
-    VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, 0);
+    VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, UINT32_MAX);
     if (r != VK_SUCCESS && r != VK_TIMEOUT) {
       std::cout << r << std::endl;
       abort();
@@ -281,6 +284,7 @@ void Vulkan::Draw() {
 
   commands.BeginRecording(imageIndex);
   // vkCmd* stuff...
+
   triangle->Draw();
   rectangle->Draw();
 
@@ -344,9 +348,7 @@ void Vulkan::InitVulkan() {
   std::vector<const char *> supportedExtensionNames{};
   vkEnumerateInstanceExtensionProperties(nullptr, &extensionSupportCount, supportedExtensions.data());
 
-  std::cout << "Supported Extensions" << std::endl;
   for (auto &supportedExtension : supportedExtensions) {
-    std::cout << supportedExtension.extensionName << std::endl;
     supportedExtensionNames.push_back(supportedExtension.extensionName);
   }
 
@@ -414,11 +416,6 @@ bool Vulkan::CheckValidationLayerSupport() {
   std::vector<VkLayerProperties> availableLayers(layerCount);
   vkEnumerateInstanceLayerProperties(&layerCount, availableLayers.data());
 
-  std::cout << "Supported Layers" << std::endl;
-  for (auto &availableLayer : availableLayers) {
-    fmt::print("Name: {}\nDescription: {}\n", availableLayer.layerName, availableLayer.description);
-  }
-
   for (const char *layerName : VULKAN_LAYERS) {
     bool layerFound = false;
     for (size_t i = 0; i < availableLayers.size(); ++i) {
@@ -460,9 +457,10 @@ void Vulkan::SetupValidationLayers() {
     return;
   }
 
-  VULKAN_LAYERS_COUNT = 1;
+  VULKAN_LAYERS_COUNT = 3;
   VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_validation");
-  // VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_synchronization2");
+  VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_synchronization2");
+  VULKAN_LAYERS.push_back("VK_LAYER_LUNARG_monitor");
 }
 
 void Vulkan::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
@@ -541,7 +539,7 @@ bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
 
   fmt::print("Checking device: {}\n", device.ToString());
 
-#define FORCE_INTEGRATED_GPU
+// #define FORCE_INTEGRATED_GPU
 #ifdef FORCE_INTEGRATED_GPU
   bool result =
       device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsIntegratedGPU();
@@ -551,10 +549,6 @@ bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
 
   if (result) {
     fmt::print("Using device: {}\n", device.Name());
-  }
-
-  for (auto e : device.SupportedExtensions) {
-    std::cout << e.extensionName << std::endl;
   }
 
   return result;
@@ -567,6 +561,7 @@ void Vulkan::CreateLogicalDevice() {
   logicalDevice.EnableValidation(enableValidationLayers);
   logicalDevice.SetUp();
   logicalDevice.Create();
+  CoffeeMaker::Renderer::Vulkan::LogicalDevice::Set(logicalDevice.Handle);
   VulkanShaderManager::AssignLogicalDevice(logicalDevice.Handle);
 }
 
@@ -617,6 +612,7 @@ void Vulkan::CreateRenderPass() {
   renderPass.SetSwapchain(&swapChain);
   renderPass.SetDepthFormat(swapChain.GetDepthFormat());
   renderPass.Build();
+  CoffeeMaker::Renderer::Vulkan::RenderPass::Set(renderPass.Handle);
 }
 
 void Vulkan::CreateFramebuffer() {
