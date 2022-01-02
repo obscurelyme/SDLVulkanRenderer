@@ -282,7 +282,7 @@ void Vulkan::Draw() {
     // std::cout << "Implicit Recreation" << std::endl;
     RecreateSwapChain();
     // std::cout << "Implicit Recreation Done" << std::endl;
-  } else if (nxtImageResult != VK_SUCCESS) {
+  } else if (nxtImageResult != VK_SUCCESS && nxtImageResult != VK_SUBOPTIMAL_KHR) {
     SimpleMessageBox::ShowError("Drawing Error", fmt::format("Vulkan Error Code: [{}]", nxtImageResult));
   }
 
@@ -483,6 +483,7 @@ void Vulkan::SetupValidationLayers() {
 
   VULKAN_LAYERS_COUNT = 1;
   VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_validation");
+  // VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_synchronization2");
 }
 
 void Vulkan::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
