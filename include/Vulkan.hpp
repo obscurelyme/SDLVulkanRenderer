@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "Editor/ImGuiEditorObject.hpp"
+#include "Rectangle.hpp"
 #include "Suzanne.hpp"
 #include "Triangle.hpp"
 #include "VulkanCommands.hpp"
@@ -163,6 +164,7 @@ class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
   int framecount;
 
   Triangle *triangle;
+  CoffeeMaker::Primitives::Rectangle *rectangle;
   Suzanne *suzanne;
 
   // NOTE: use for immediate submit command steps

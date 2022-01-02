@@ -10,6 +10,8 @@
 #include <string>
 #include <vector>
 
+#include "VkUtils.hpp"
+
 VertexInputDescription Vertex::Description() {
   VertexInputDescription desc;
 
@@ -103,4 +105,23 @@ void Mesh::LoadObj(const std::string& filename) {
       indexOffset += fv;
     }
   }
+}
+
+void Mesh::CreateVertexBuffer() {
+  // Allocate the Vertex Buffer
+  vertexBuffer =
+      CreateBuffer(vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  // Map memory to GPU
+  MapMemory(vertices.data(), vertices.size() * sizeof(Vertex), vertexBuffer.allocation);
+  // Flush allocation as it *may* not be in GPU cache after mapping
+  FlushMemory(vertexBuffer.allocation, 0, vertices.size() * sizeof(Vertex));
+  UnmapMemory(vertexBuffer.allocation);
+}
+
+void Mesh::CreateIndexBuffer() {
+  indexBuffer =
+      CreateBuffer(indices.size() * sizeof(uint16_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+  MapMemory(indices.data(), indices.size() * sizeof(uint16_t), indexBuffer.allocation);
+  FlushMemory(indexBuffer.allocation, 0, indices.size() * sizeof(uint16_t));
+  UnmapMemory(indexBuffer.allocation);
 }

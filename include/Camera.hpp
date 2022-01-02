@@ -47,7 +47,7 @@ class Camera : public SDLKeyboardEventListener, public CoffeeMaker::Editor::ImGu
   float _fov{70.0f};
   float _num{0.0f};
   bool _ortho{false};
-  float scale{1.0f};
+  float scale{10.0f};
 
   std::vector<std::function<void(CameraType)>> _listeners;
 };

@@ -1,14 +1,10 @@
 #ifndef _coffeemaker_vulkan_mesh_hpp
 #define _coffeemaker_vulkan_mesh_hpp
 
+#include <string>
 #include <vector>
 
 #include "VulkanTypes.hpp"
-// #include "glm/mat4x4.hpp"
-// #include "glm/vec3.hpp"
-// #include "glm/vec4.hpp"
-#include <string>
-
 #include "glm/glm.hpp"
 
 struct VertexInputDescription {
@@ -33,9 +29,14 @@ struct Vertex {
 
 struct Mesh {
   std::vector<Vertex> vertices;
+  std::vector<uint16_t> indices;
   AllocatedBuffer vertexBuffer;
+  AllocatedBuffer indexBuffer;
 
   void LoadObj(const std::string& filename);
+
+  void CreateVertexBuffer();
+  void CreateIndexBuffer();
 };
 
 struct MeshPushConstants {

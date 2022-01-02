@@ -77,6 +77,10 @@ class VulkanSwapchain {
     _extent = details.capabilities.currentExtent;
   }
 
+  float AspectRatioW() { return static_cast<float>(_extent.width) / static_cast<float>(_extent.height); }
+
+  float AspectRatioH() { return static_cast<float>(_extent.height) / static_cast<float>(_extent.width); }
+
   void Create() {
     VulkanSwapChainSupportDetails details = _physicalDevice->SwapChainSupport;
     VulkanQueueFamilyIndices indices = _physicalDevice->QueueFamilies;

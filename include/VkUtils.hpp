@@ -6,7 +6,7 @@
 
 #include <string>
 
-#include "VulkanMesh.hpp"
+#include "VulkanTypes.hpp"
 
 struct Texture {
   ~Texture();

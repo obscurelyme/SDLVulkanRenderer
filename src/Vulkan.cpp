@@ -66,6 +66,7 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateSemaphores();
   InitSyncStructures();
   _mainRenderer = this;
+  rectangle = new CoffeeMaker::Primitives::Rectangle(logicalDevice.Handle, renderPass.Handle, &commands, &swapChain);
   triangle = new Triangle(logicalDevice.Handle, renderPass.Handle, &commands, &swapChain);
   // suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
 }
@@ -83,6 +84,7 @@ Vulkan::~Vulkan() {
 
   CleanupSwapChain();
   delete triangle;
+  delete rectangle;
   // delete suzanne;
 
   syncUtils.DestroyHandles();
@@ -280,6 +282,7 @@ void Vulkan::Draw() {
   commands.BeginRecording(imageIndex);
   // vkCmd* stuff...
   triangle->Draw();
+  rectangle->Draw();
 
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetCurrentBuffer());
   commands.EndRecording(imageIndex);
@@ -538,7 +541,7 @@ bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
 
   fmt::print("Checking device: {}\n", device.ToString());
 
-#define FORCE_INTEGRATED_GPU
+// #define FORCE_INTEGRATED_GPU
 #ifdef FORCE_INTEGRATED_GPU
   bool result =
       device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsIntegratedGPU();
