@@ -28,7 +28,7 @@ Application::Application(std::string name, int windowWidth, int windowHeight) : 
   icon = IMG_Load(fmt::format("{}{}", SDL_GetBasePath(), "mug.png").c_str());
   Uint32 flags = SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_BORDERLESS;
   window = SDL_CreateWindow(appName.c_str(), SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, windowWidth,
-                            windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | flags);
+                            windowHeight, SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
   SDL_SetWindowIcon(window, icon);
   Camera::CreateMainCamera(windowWidth, windowHeight);
   renderer = new Vulkan(appName, window);

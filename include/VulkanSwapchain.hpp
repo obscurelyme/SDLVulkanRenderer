@@ -110,6 +110,7 @@ class VulkanSwapchain {
       createInfo.queueFamilyIndexCount = 0;      // Optional
       createInfo.pQueueFamilyIndices = nullptr;  // Optional
     }
+    // OldHandle = Handle != VK_NULL_HANDLE ? Handle : VK_NULL_HANDLE;
     createInfo.preTransform = details.capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode = _presentMode;
@@ -202,6 +203,7 @@ class VulkanSwapchain {
   VkImageView GetDepthImageView() { return _depthImageView; }
 
   VkSwapchainKHR Handle{VK_NULL_HANDLE};
+  VkSwapchainKHR OldHandle{VK_NULL_HANDLE};
 
   private:
   SDL_Window* _window{nullptr};
