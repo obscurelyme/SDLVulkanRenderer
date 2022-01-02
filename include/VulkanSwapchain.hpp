@@ -64,39 +64,17 @@ class VulkanSwapchain {
       if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
         // Leverage triple buffering if we can.
         _presentMode = availablePresentMode;
-        std::cout << "Triple Buffering on" << std::endl;
         return;
       }
     }
 
     // else, fallback to double buffering
-    std::cout << "Double Buffering on" << std::endl;
     _presentMode = VK_PRESENT_MODE_FIFO_KHR;
   }
 
   void ChooseSwapExtent() {
-    int width, height;
-    SDL_Vulkan_GetDrawableSize(_window, &width, &height);
-    _extent.width = width;
-    _extent.height = height;
     VulkanSwapChainSupportDetails details = _physicalDevice->SwapChainSupport;
     _extent = details.capabilities.currentExtent;
-
-    // if (details.capabilities.currentExtent.width != UINT32_MAX) {
-    //   _extent = details.capabilities.currentExtent;
-    // } else {
-    //   int width, height;
-    //   SDL_Vulkan_GetDrawableSize(_window, &width, &height);
-    //   _extent = {.width = static_cast<uint32_t>(width), .height = static_cast<uint32_t>(height)};
-
-    //   _extent.width = std::clamp(_extent.width, details.capabilities.minImageExtent.width,
-    //                              details.capabilities.maxImageExtent.width);
-    //   _extent.height = std::clamp(_extent.height, details.capabilities.minImageExtent.height,
-    //                               details.capabilities.maxImageExtent.height);
-    // }
-    std::cout << "SDL Extent: (" << width << ", " << height << ")" << std::endl;
-    std::cout << "Physical Device Extent: (" << details.capabilities.currentExtent.width << ", "
-              << details.capabilities.currentExtent.height << ")" << std::endl;
   }
 
   void Create() {
