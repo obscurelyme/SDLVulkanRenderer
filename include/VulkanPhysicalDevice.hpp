@@ -71,8 +71,6 @@ class VulkanPhysicalDevice {
     vkEnumerateDeviceExtensionProperties(Handle, nullptr, &extensionCount, SupportedExtensions.data());
 
     vkGetPhysicalDeviceMemoryProperties(Handle, &MemoryProperties);
-
-    std::cout << "Device made " << Properties.deviceName << std::endl;
   }
 
   VulkanPhysicalDevice(const VulkanPhysicalDevice& d) {

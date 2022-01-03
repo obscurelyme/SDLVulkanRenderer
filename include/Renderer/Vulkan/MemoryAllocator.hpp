@@ -17,13 +17,13 @@ namespace CoffeeMaker::Renderer::Vulkan {
   };
 
   struct AllocatedBuffer {
-    VkBuffer buffer;
-    VmaAllocation allocation;
+    VkBuffer buffer{VK_NULL_HANDLE};
+    VmaAllocation allocation{VK_NULL_HANDLE};
   };
 
   struct AllocatedImage {
-    VkImage image;
-    VmaAllocation allocation;
+    VkImage image{VK_NULL_HANDLE};
+    VmaAllocation allocation{VK_NULL_HANDLE};
   };
 
   AllocatedBuffer CreateBuffer(size_t allocSize, VkBufferUsageFlags usage, VmaMemoryUsage memoryUsage);

@@ -4,18 +4,20 @@
 #include <SDL2/SDL.h>
 #include <imgui.h>
 
+#include "Renderer/Vulkan/PhysicalDevice.hpp"
 #include "Vulkan.hpp"
-#include "VulkanPhysicalDevice.hpp"
 
 namespace CoffeeMaker::Editor {
   class MainMenuBar {
+    using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
+
     public:
     static void Render(SDL_Window* window) {
       if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("Menu")) {
           if (ImGui::BeginMenu("GPUs")) {
-            for (auto& gpu : VulkanPhysicalDevice::EnumeratePhysicalDevices(Vulkan::GetRenderer()->vulkanInstance)) {
-              ImGui::MenuItem(gpu.Name());
+            for (auto gpu : PhysicalDevice::EnumeratePhysicalDevices(Vulkan::GetRenderer()->vulkanInstance)) {
+              ImGui::MenuItem(gpu->Name(), nullptr, gpu->IsSelected());
             }
             ImGui::EndMenu();
           }

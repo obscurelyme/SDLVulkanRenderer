@@ -26,7 +26,9 @@ set(RENDERER_VULKAN_SRC
   src/Renderer/Vulkan/MemoryAllocator.cpp
   src/Renderer/Vulkan/Pipeline.cpp
   src/Renderer/Vulkan/RenderPass.cpp
-  # src/Renderer/Vulkan/Swapchain.cpp
+  src/Renderer/Vulkan/Swapchain.cpp
+  src/Renderer/Vulkan/Surface.cpp
+  src/Renderer/Vulkan/PhysicalDevice.cpp
   # src/Renderer/Vulkan/Syncronization.cpp
   # src/Renderer/Vulkan/VK.cpp
   # src/Renderer/Material.cpp
@@ -83,6 +85,10 @@ add_compile_definitions(VK_ENABLE_BETA_EXTENSIONS)
 add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
 add_compile_definitions(GLM_FORCE_LEFT_HANDED)
 add_compile_definitions(GLM_FORCE_RADIANS)
+
+if (APPLE OR WIN32)
+  add_compile_definitions(COFFEEMAKER_STANDARD_WAIT_FOR_FENCE)
+endif()
 
 if (APPLE)
   set_target_properties(CoffeeRender PROPERTIES

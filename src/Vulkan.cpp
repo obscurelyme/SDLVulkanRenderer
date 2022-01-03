@@ -12,6 +12,7 @@
 #include "Renderer/Vulkan/LogicalDevice.hpp"
 #include "Renderer/Vulkan/MemoryAllocator.hpp"
 #include "Renderer/Vulkan/RenderPass.hpp"
+#include "Renderer/Vulkan/Surface.hpp"
 #include "VkInitializers.hpp"
 #include "VulkanShaderManager.hpp"
 #include "imgui.h"
@@ -95,7 +96,7 @@ Vulkan::~Vulkan() {
   logicalDevice.DestroyHandle();
   VulkanPhysicalDevice::ClearAllPhysicalDevices();
   if (vulkanInstanceInitialized) {
-    vkDestroySurfaceKHR(vulkanInstance, vulkanSurface, nullptr);
+    CoffeeMaker::Renderer::Vulkan::Surface::Destroy();
     vkDestroyInstance(vulkanInstance, nullptr);
   }
 }
@@ -267,11 +268,13 @@ void Vulkan::Draw() {
 
   // Check if a previous frame is using this image (i.e. there is its fence to wait on)
   if (syncUtils.imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
-    // NOTE: This is what the line should be, with timeout set to UINT32_MAX
-    // VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE,
-    // UINT32_MAX);
+#ifdef COFFEEMAKER_STANDARD_WAIT_FOR_FENCE
+    // NOTE: This is what the line should be for all systems, with timeout set to UINT32_MAX
+    VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, UINT32_MAX);
+#else
     // TODO: Figure out why on Linux w/ integrated chips, this will deadlock the whole application.
     VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, 0);
+#endif
     if (r != VK_SUCCESS && r != VK_TIMEOUT) {
       std::cout << r << std::endl;
       abort();
@@ -519,7 +522,7 @@ void Vulkan::PickPhysicalDevice() {
   std::vector<VulkanPhysicalDevice> &devices = VulkanPhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
 
   for (VulkanPhysicalDevice &device : devices) {
-    device.SetSurface(vulkanSurface);
+    device.SetSurface(CoffeeMaker::Renderer::Vulkan::Surface::GetSurface());
     device.FindQueueFamilies();
     device.QuerySwapChainSupport();
   }
@@ -579,12 +582,7 @@ void Vulkan::CreateMemoryAllocator() {
   allocator = MemAlloc::GetAllocator();
 }
 
-void Vulkan::CreateSurface() {
-  if (!SDL_Vulkan_CreateSurface(windowHandle, vulkanInstance, &vulkanSurface)) {
-    ShowError("SDL Vulkan Surface",
-              fmt::format("SDL2 was unable to create Vulkan Surface.\nSDL Error: [{}]", SDL_GetError()));
-  }
-}
+void Vulkan::CreateSurface() { CoffeeMaker::Renderer::Vulkan::Surface::CreateSurface(windowHandle, vulkanInstance); }
 
 void Vulkan::AddRequiredDeviceExtensionSupport(VkPhysicalDevice device) {
   uint32_t extensionCount;
