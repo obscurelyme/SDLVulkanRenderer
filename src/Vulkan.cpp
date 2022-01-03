@@ -245,6 +245,14 @@ void Vulkan::RecreateSwapChain() {
                                   physicalDevice.SwapChainSupport.capabilities.currentExtent.height);
 }
 
+void BeginRender() {
+  // TODO: Start render process here...
+}
+
+void EndRender() {
+  // TODO: End render process here...
+}
+
 void Vulkan::Draw() {
   triangle->Update();
   syncUtils.WaitForFence2(currentFrame);

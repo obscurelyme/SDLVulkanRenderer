@@ -40,6 +40,8 @@ class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
   VkInstance InstanceHandle() const;
   VkDevice LogicalDevice() const { return logicalDevice.Handle; }
 
+  void BeginRender();
+  void EndRender();
   void Draw();
 
   void RecreateSwapChain();

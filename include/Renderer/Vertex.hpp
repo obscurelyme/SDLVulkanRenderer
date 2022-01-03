@@ -30,7 +30,6 @@ namespace CoffeeMaker::Renderer {
     AllocatedBuffer indexBuffer;
 
     void LoadObj(const std::string& filename);
-
     void CreateVertexBuffer();
     void CreateIndexBuffer();
   };
