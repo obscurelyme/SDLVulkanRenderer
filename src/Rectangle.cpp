@@ -1,5 +1,5 @@
 #include "Rectangle.hpp"
-GLM_FORCE_RADIANS
+
 #include <glm/glm.hpp>
 
 #include "VkUtils.hpp"

@@ -69,7 +69,7 @@ namespace CoffeeMaker::Renderer::Vulkan {
     ~Pipeline();
 
     Pipeline(const Pipeline& p) = delete;
-    void operator=(const Pipeline& p) = delete;
+    Pipeline& operator=(const Pipeline& p) = delete;
 
     VkPipeline pPipeline{VK_NULL_HANDLE};
     VkPipelineLayoutCreateInfo layoutInfo{};

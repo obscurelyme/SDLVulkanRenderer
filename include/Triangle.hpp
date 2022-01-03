@@ -88,6 +88,20 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
 
   void Draw() {
     VkCommandBuffer cmd = cmds->GetCurrentBuffer();
+    VkViewport viewport{};
+    viewport.x = 0.0f;
+    viewport.y = 0.0f;
+    viewport.width = static_cast<float>(swapChain->GetExtent().width);
+    viewport.height = static_cast<float>(swapChain->GetExtent().height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    VkRect2D scissor{{
+                         0,
+                         0,
+                     },
+                     swapChain->GetExtent()};
+    vkCmdSetViewport(cmd, 0, 1, &viewport);
+    vkCmdSetScissor(cmd, 0, 1, &scissor);
     if (_useRedPipeline) {
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, _redTrianglePipeline);
       vkCmdDraw(cmd, 3, 1, 0, 0);

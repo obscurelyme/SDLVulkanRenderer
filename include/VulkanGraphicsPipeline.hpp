@@ -25,6 +25,8 @@ class PipelineBuilder {
   VkPipelineMultisampleStateCreateInfo _multisampling;
   VkPipelineLayout _pipelineLayout;
   VkPipelineDepthStencilStateCreateInfo _depthStencil;
+  std::vector<VkDynamicState> dynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+  VkPipelineDynamicStateCreateInfo dynamicState{};
 
   /**
    * @brief Inserts a shader module into the render pipeline
@@ -278,6 +280,10 @@ class PipelineBuilder {
     colorBlending.blendConstants[2] = 0.0f;  // Optional
     colorBlending.blendConstants[3] = 0.0f;  // Optional
 
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount = dynamicStates.size();
+    dynamicState.pDynamicStates = dynamicStates.data();
+
     // NOTE: Use all of the info structs to build the actual pipeline
     VkGraphicsPipelineCreateInfo pipelineInfo = {};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -290,7 +296,7 @@ class PipelineBuilder {
     pipelineInfo.pMultisampleState = &_multisampling;
     pipelineInfo.pDepthStencilState = &_depthStencil;  // Optional
     pipelineInfo.pColorBlendState = &colorBlending;
-    pipelineInfo.pDynamicState = nullptr;  // Optional
+    pipelineInfo.pDynamicState = &dynamicState;  // Optional
     pipelineInfo.layout = _pipelineLayout;
     pipelineInfo.renderPass = renderPass;
     pipelineInfo.subpass = 0;

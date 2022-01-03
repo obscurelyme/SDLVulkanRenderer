@@ -8,6 +8,7 @@
 
 #include "Camera.hpp"
 #include "DeltaTime.hpp"
+#include "Editor/MainMenuBar.hpp"
 #include "Triangle.hpp"
 #include "VkImGui.hpp"
 #include "VulkanShaderManager.hpp"
@@ -58,6 +59,9 @@ void Application::Run() {
         if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
           renderer->FramebufferResize();
         }
+        if (event.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
+          renderer->FramebufferResize();
+        }
       }
       if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP) {
         SDLKeyboardEventManager::HandleKeyboardEvent(event.key);
@@ -69,7 +73,9 @@ void Application::Run() {
 
     VulkanImGui::NewFrame();
     VulkanImGui::Update();
-    // ImGui::ShowDemoWindow();
+    ImGui::ShowDemoWindow();
+
+    CoffeeMaker::Editor::MainMenuBar::Render(window);
 
     renderer->Draw();
     CoffeeMaker::DeltaTime::PreviousTime = CoffeeMaker::DeltaTime::CurrentTime;

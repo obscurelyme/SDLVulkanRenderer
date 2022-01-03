@@ -60,13 +60,13 @@ class VulkanSwapchain {
   }
 
   void ChoosePresentationMode() {
-    // for (const auto& availablePresentMode : _physicalDevice->SwapChainSupport.presentModes) {
-    //   if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-    //     // Leverage triple buffering if we can.
-    //     _presentMode = availablePresentMode;
-    //     return;
-    //   }
-    // }
+    for (const auto& availablePresentMode : _physicalDevice->SwapChainSupport.presentModes) {
+      if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+        // Leverage triple buffering if we can.
+        _presentMode = availablePresentMode;
+        return;
+      }
+    }
 
     // Use V-Sync
     _presentMode = VK_PRESENT_MODE_FIFO_KHR;
