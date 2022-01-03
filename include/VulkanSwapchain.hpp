@@ -4,7 +4,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_vulkan.h>
 #include <fmt/core.h>
-#include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
 #include <algorithm>
@@ -12,8 +11,9 @@
 #include <iostream>
 #include <vector>
 
+#include "Renderer/Vulkan/MemoryAllocator.hpp"
+#include "Renderer/Vulkan/Utilities.hpp"
 #include "SimpleMessageBox.hpp"
-#include "VkUtils.hpp"
 #include "VulkanLogicalDevice.hpp"
 #include "VulkanPhysicalDevice.hpp"
 
@@ -33,7 +33,7 @@ class VulkanSwapchain {
     }
     // Destroy Depth Image Views and Image
     vkDestroyImageView(_logicalDevice->Handle, _depthImageView, nullptr);
-    vmaDestroyImage(_allocator, _depthImage._image, _depthImage._allocation);
+    vmaDestroyImage(_allocator, _depthImage.image, _depthImage.allocation);
     // Destroy Swapchain
     vkDestroySwapchainKHR(_logicalDevice->Handle, Handle, nullptr);
     Handle = VK_NULL_HANDLE;
@@ -168,18 +168,18 @@ class VulkanSwapchain {
   void CreateDepthImageView(VmaAllocator alloc) {
     _allocator = alloc;
     VkExtent3D depthImageExtent = {.width = _extent.width, .height = _extent.height, .depth = 1};
-    VkImageCreateInfo depthInfo =
-        CreateImageInfo(_depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, depthImageExtent);
+    VkImageCreateInfo depthInfo = CoffeeMaker::Renderer::Vulkan::CreateImageInfo(
+        _depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, depthImageExtent);
 
     VmaAllocationCreateInfo dimgAllocInfo = {};
     dimgAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
     dimgAllocInfo.requiredFlags = VkMemoryPropertyFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     // allocate and create the image
-    vmaCreateImage(alloc, &depthInfo, &dimgAllocInfo, &_depthImage._image, &_depthImage._allocation, nullptr);
+    vmaCreateImage(alloc, &depthInfo, &dimgAllocInfo, &_depthImage.image, &_depthImage.allocation, nullptr);
 
     VkImageViewCreateInfo depthViewInfo =
-        CreateImageViewInfo(_depthFormat, _depthImage._image, VK_IMAGE_ASPECT_DEPTH_BIT);
+        CoffeeMaker::Renderer::Vulkan::CreateImageViewInfo(_depthFormat, _depthImage.image, VK_IMAGE_ASPECT_DEPTH_BIT);
 
     vkCreateImageView(_logicalDevice->Handle, &depthViewInfo, nullptr, &_depthImageView);
   }
@@ -219,7 +219,7 @@ class VulkanSwapchain {
   // NOTE: Set up for Depth
   VmaAllocator _allocator;
   VkImageView _depthImageView;
-  AllocatedImage _depthImage;
+  CoffeeMaker::Renderer::Vulkan::AllocatedImage _depthImage;
   VkFormat _depthFormat{VK_FORMAT_D32_SFLOAT};
 };
 

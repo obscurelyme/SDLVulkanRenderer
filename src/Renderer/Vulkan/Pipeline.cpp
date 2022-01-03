@@ -225,6 +225,10 @@ void CoffeeMaker::Renderer::Vulkan::Pipeline::CreatePipeline(CoffeeMaker::Render
   layoutInfo = CreatePipelineLayoutInfo(info.pushConstantRangeCount,
                                         info.pushConstantRangeCount == 0 ? nullptr : &info.pushConstants);
 
+  dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+  dynamicState.dynamicStateCount = dynamicStates.size();
+  dynamicState.pDynamicStates = dynamicStates.data();
+
   VkResult result = vkCreatePipelineLayout(LogicalDevice::GetLogicalDevice(), &layoutInfo, nullptr, &layout);
   if (result != VK_SUCCESS) {
     abort();
@@ -240,7 +244,7 @@ void CoffeeMaker::Renderer::Vulkan::Pipeline::CreatePipeline(CoffeeMaker::Render
   pipelineInfo.pMultisampleState = &multisampling;
   pipelineInfo.pDepthStencilState = &depthStencil;
   pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.pDynamicState = nullptr;
+  pipelineInfo.pDynamicState = &dynamicState;
   pipelineInfo.layout = layout;
   pipelineInfo.renderPass = RenderPass::GetRenderPass();
   pipelineInfo.subpass = 0;

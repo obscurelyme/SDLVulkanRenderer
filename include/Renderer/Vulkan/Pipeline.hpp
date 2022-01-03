@@ -86,6 +86,8 @@ namespace CoffeeMaker::Renderer::Vulkan {
     VkPipelineColorBlendStateCreateInfo colorBlending{};
     VkPipelineMultisampleStateCreateInfo multisampling{};
     VkPipelineDepthStencilStateCreateInfo depthStencil{};
+    std::vector<VkDynamicState> dynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    VkPipelineDynamicStateCreateInfo dynamicState{};
   };
 }  // namespace CoffeeMaker::Renderer::Vulkan
 

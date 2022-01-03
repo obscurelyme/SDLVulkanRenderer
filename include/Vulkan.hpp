@@ -16,7 +16,6 @@
 
 #include "Editor/ImGuiEditorObject.hpp"
 #include "Rectangle.hpp"
-#include "Suzanne.hpp"
 #include "Triangle.hpp"
 #include "VulkanCommands.hpp"
 #include "VulkanFramebuffer.hpp"
@@ -165,7 +164,6 @@ class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
 
   Triangle *triangle;
   CoffeeMaker::Primitives::Rectangle *rectangle;
-  Suzanne *suzanne;
 
   // NOTE: use for immediate submit command steps
   UploadContext _uploadContext;

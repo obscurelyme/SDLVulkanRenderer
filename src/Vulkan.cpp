@@ -10,9 +10,9 @@
 
 #include "Camera.hpp"
 #include "Renderer/Vulkan/LogicalDevice.hpp"
+#include "Renderer/Vulkan/MemoryAllocator.hpp"
 #include "Renderer/Vulkan/RenderPass.hpp"
 #include "VkInitializers.hpp"
-#include "VulkanAllocator.hpp"
 #include "VulkanShaderManager.hpp"
 #include "imgui.h"
 #include "imgui_impl_vulkan.h"
@@ -69,8 +69,7 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   InitSyncStructures();
   _mainRenderer = this;
   rectangle = new CoffeeMaker::Primitives::Rectangle(&commands, &swapChain);
-  triangle = new Triangle(logicalDevice.Handle, renderPass.Handle, &commands, &swapChain);
-  // suzanne = new Suzanne(allocator, logicalDevice.Handle, renderPass.Handle, commands.GetBuffer(), &swapChain);
+  triangle = new Triangle(&commands, &swapChain);
 }
 
 Vulkan::~Vulkan() {
@@ -92,7 +91,7 @@ Vulkan::~Vulkan() {
   syncUtils.DestroyHandles();
   commands.DestroyPool();
   VulkanShaderManager::CleanAllShaders();
-  VulkanAllocator::DestroyAllocator();
+  CoffeeMaker::Renderer::Vulkan::MemoryAllocator::DestroyAllocator();
   logicalDevice.DestroyHandle();
   VulkanPhysicalDevice::ClearAllPhysicalDevices();
   if (vulkanInstanceInitialized) {
@@ -241,7 +240,7 @@ void Vulkan::RecreateSwapChain() {
   CreateCommands(true);
   // TODO: Nofity all pipelines and layouts to be created...
   EmitSwapChainCreated();
-  triangle->OnSwapChainRecreated(renderPass.Handle, &commands, &swapChain);
+  triangle->OnSwapChainRecreated(&commands, &swapChain);
   Camera::SetMainCameraDimensions(physicalDevice.SwapChainSupport.capabilities.currentExtent.width,
                                   physicalDevice.SwapChainSupport.capabilities.currentExtent.height);
 }
@@ -567,8 +566,9 @@ void Vulkan::CreateLogicalDevice() {
 }
 
 void Vulkan::CreateMemoryAllocator() {
-  VulkanAllocator::CreateAllocator(physicalDevice.Handle, logicalDevice.Handle, vulkanInstance);
-  allocator = VulkanAllocator::allocator;
+  using MemAlloc = CoffeeMaker::Renderer::Vulkan::MemoryAllocator;
+  MemAlloc::CreateAllocator(physicalDevice.Handle, logicalDevice.Handle, vulkanInstance);
+  allocator = MemAlloc::GetAllocator();
 }
 
 void Vulkan::CreateSurface() {
