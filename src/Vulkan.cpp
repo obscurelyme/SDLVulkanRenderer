@@ -459,10 +459,9 @@ void Vulkan::SetupValidationLayers() {
     return;
   }
 
-  VULKAN_LAYERS_COUNT = 3;
+  VULKAN_LAYERS_COUNT = 2;
   VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_validation");
   VULKAN_LAYERS.push_back("VK_LAYER_KHRONOS_synchronization2");
-  VULKAN_LAYERS.push_back("VK_LAYER_LUNARG_monitor");
 }
 
 void Vulkan::PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo) {
