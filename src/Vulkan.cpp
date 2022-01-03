@@ -260,9 +260,11 @@ void Vulkan::Draw() {
 
   // Check if a previous frame is using this image (i.e. there is its fence to wait on)
   if (syncUtils.imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+    // NOTE: This is what the line should be, with timeout set to UINT32_MAX
     // VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE,
     // UINT32_MAX);
-    VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, UINT32_MAX);
+    // TODO: Figure out why on Linux w/ integrated chips, this will deadlock the whole application.
+    VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, 0);
     if (r != VK_SUCCESS && r != VK_TIMEOUT) {
       std::cout << r << std::endl;
       abort();
@@ -539,7 +541,7 @@ bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
 
   fmt::print("Checking device: {}\n", device.ToString());
 
-// #define FORCE_INTEGRATED_GPU
+#define FORCE_INTEGRATED_GPU
 #ifdef FORCE_INTEGRATED_GPU
   bool result =
       device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsIntegratedGPU();
