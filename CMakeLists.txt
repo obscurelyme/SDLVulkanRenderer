@@ -18,19 +18,18 @@ find_package(imgui CONFIG REQUIRED)
 find_package(sdl2-image CONFIG REQUIRED)
 
 set(EDITOR_SRC src/Editor/ImGuiEditorObject.cpp)
+
 set(RENDERER_VULKAN_SRC
   src/Renderer/Vulkan/Commands.cpp
-  # src/Renderer/Vulkan/Core.cpp
   src/Renderer/Vulkan/Framebuffer.cpp
-  src/Renderer/Vulkan/Utilities.cpp
   src/Renderer/Vulkan/LogicalDevice.cpp
   src/Renderer/Vulkan/MemoryAllocator.cpp
   src/Renderer/Vulkan/Pipeline.cpp
   src/Renderer/Vulkan/RenderPass.cpp
-  src/Renderer/Vulkan/Swapchain.cpp
   src/Renderer/Vulkan/Surface.cpp
-  src/Renderer/Vulkan/PhysicalDevice.cpp
-  src/Renderer/Vulkan/Synchronization.cpp
+  src/Renderer/Vulkan/Swapchain.cpp
+  src/Renderer/Vulkan/Syncronization.cpp
+  src/Renderer/Vulkan/Utilities.cpp
   src/Renderer/Material.cpp
   src/Renderer/Vertex.cpp
   src/Renderer/Image.cpp
@@ -44,10 +43,7 @@ add_executable(CoffeeRender WIN32 MACOSX_BUNDLE
   src/VulkanPhysicalDevice.cpp
   src/KeyboardEvent.cpp
   src/Triangle.cpp
-  # src/VulkanMesh.cpp
   src/Camera.cpp
-  # src/Suzanne.cpp
-  # src/VkUtils.cpp
   src/VkImGui.cpp
   src/VkInitializers.cpp
   ${EDITOR_SRC}
@@ -85,10 +81,6 @@ add_compile_definitions(VK_ENABLE_BETA_EXTENSIONS)
 add_compile_definitions(GLM_FORCE_DEPTH_ZERO_TO_ONE)
 add_compile_definitions(GLM_FORCE_LEFT_HANDED)
 add_compile_definitions(GLM_FORCE_RADIANS)
-
-if (APPLE OR WIN32)
-  add_compile_definitions(COFFEEMAKER_STANDARD_WAIT_FOR_FENCE)
-endif()
 
 if (APPLE)
   set_target_properties(CoffeeRender PROPERTIES
