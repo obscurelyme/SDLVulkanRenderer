@@ -1,6 +1,7 @@
 #include "Renderer/Vulkan/Synchronization.hpp"
 
 #include "Renderer/Vulkan/LogicalDevice.hpp"
+#include "Renderer/Vulkan/Swapchain.hpp"
 
 VkSemaphoreCreateInfo CoffeeMaker::Renderer::Vulkan::Synchronization::semaphoreCreateInfo{};
 VkFenceCreateInfo CoffeeMaker::Renderer::Vulkan::Synchronization::fenceCreateInfo{};
@@ -12,6 +13,12 @@ std::vector<VkFence> CoffeeMaker::Renderer::Vulkan::Synchronization::imagesInFli
 
 void CoffeeMaker::Renderer::Vulkan::Synchronization::CreateSyncTools() {
   using LogicDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
+  using Swapchain = CoffeeMaker::Renderer::Vulkan::Swapchain;
+
+  imageAvailableSemaphores.resize(2);
+  imageRenderSemaphores.resize(2);
+  inFlightFences.resize(2);
+  imagesInFlight.resize(Swapchain::GetSwapchain()->swapChainImages.size(), VK_NULL_HANDLE);
 
   // NOTE: semaphores don't need any flags
   semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;

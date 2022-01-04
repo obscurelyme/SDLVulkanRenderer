@@ -13,7 +13,11 @@ VkRenderPass CoffeeMaker::Renderer::Vulkan::RenderPass::GetRenderPass() { return
 void CoffeeMaker::Renderer::Vulkan::RenderPass::Set(VkRenderPass renderpass) { gVkpRenderPass = renderpass; }
 
 void CoffeeMaker::Renderer::Vulkan::RenderPass::CreateRenderPass() {
+  using Swapchain = CoffeeMaker::Renderer::Vulkan::Swapchain;
+
   gRenderPass = new RenderPass();
+
+  gRenderPass->depthFormat = Swapchain::GetSwapchain()->depthFormat;
   gRenderPass->InitCreateSubpassDependency();
   gRenderPass->InitCreateColorAttachmentDes();
   gRenderPass->InitCreateDepthAttachmentDes();
@@ -27,7 +31,8 @@ void CoffeeMaker::Renderer::Vulkan::RenderPass::CreateRenderPass() {
 void CoffeeMaker::Renderer::Vulkan::RenderPass::Destroy() {
   using LogicDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
 
-  vkDestroyRenderPass(LogicalDevice::GetLogicalDevice(), gVkpRenderPass, nullptr);
+  vkDestroyRenderPass(LogicalDevice::GetLogicalDevice(), gRenderPass->vkpRenderPass, nullptr);
+  delete gRenderPass;
 }
 
 void CoffeeMaker::Renderer::Vulkan::RenderPass::InitCreateSubpassDependency() {

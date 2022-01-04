@@ -17,6 +17,7 @@ void CoffeeMaker::Renderer::Vulkan::Swapchain::CreateSwapchain() {
   gSwapchain->InitChooseSwapSurfaceFormat();
   gSwapchain->InitChoosePresentMode();
   gSwapchain->InitChooseSwapExtent();
+  gSwapchain->InitCreateSwapchainKHR();
   gSwapchain->InitCreateImageViews();
   gSwapchain->InitCreateDepthImageView();
 }

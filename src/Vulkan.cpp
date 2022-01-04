@@ -309,8 +309,6 @@ void Vulkan::Draw() {
   ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), Commands::GetCurrentBuffer());
   Commands::EndRecording(imageIndex);
 
-  // VkSemaphore presentSemaRef = syncUtils.PresentSemaphore2(currentFrame);
-  // VkSemaphore renderSemaRef = syncUtils.RenderSemaphore2(currentFrame);
   VkCommandBuffer cmd = Commands::GetCurrentBuffer();
 
   VkSubmitInfo submitInfo{};
@@ -602,7 +600,13 @@ void Vulkan::AddRequiredDeviceExtensionSupport(VkPhysicalDevice device) {
   }
 }
 
-void Vulkan::CreateSwapChain() { CoffeeMaker::Renderer::Vulkan::Swapchain::CreateSwapchain(); }
+void Vulkan::CreateSwapChain() {
+  using Swapchain = CoffeeMaker::Renderer::Vulkan::Swapchain;
+
+  Swapchain::CreateSwapchain();
+
+  Camera::SetMainCameraDimensions(Swapchain::GetSwapchain()->extent.width, Swapchain::GetSwapchain()->extent.height);
+}
 
 void Vulkan::CreateRenderPass() { CoffeeMaker::Renderer::Vulkan::RenderPass::CreateRenderPass(); }
 
