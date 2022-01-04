@@ -19,8 +19,9 @@ find_package(sdl2-image CONFIG REQUIRED)
 
 set(EDITOR_SRC src/Editor/ImGuiEditorObject.cpp)
 set(RENDERER_VULKAN_SRC
-  # src/Renderer/Vulkan/Commands.cpp
-  # src/Renderer/Vulkan/Framebuffer.cpp
+  src/Renderer/Vulkan/Commands.cpp
+  # src/Renderer/Vulkan/Core.cpp
+  src/Renderer/Vulkan/Framebuffer.cpp
   src/Renderer/Vulkan/Utilities.cpp
   src/Renderer/Vulkan/LogicalDevice.cpp
   src/Renderer/Vulkan/MemoryAllocator.cpp
@@ -29,9 +30,8 @@ set(RENDERER_VULKAN_SRC
   src/Renderer/Vulkan/Swapchain.cpp
   src/Renderer/Vulkan/Surface.cpp
   src/Renderer/Vulkan/PhysicalDevice.cpp
-  # src/Renderer/Vulkan/Syncronization.cpp
-  # src/Renderer/Vulkan/VK.cpp
-  # src/Renderer/Material.cpp
+  src/Renderer/Vulkan/Synchronization.cpp
+  src/Renderer/Material.cpp
   src/Renderer/Vertex.cpp
   src/Renderer/Image.cpp
 )

@@ -8,7 +8,7 @@
 VkRenderPass CoffeeMaker::Renderer::Vulkan::RenderPass::gVkpRenderPass{VK_NULL_HANDLE};
 CoffeeMaker::Renderer::Vulkan::RenderPass* CoffeeMaker::Renderer::Vulkan::RenderPass::gRenderPass{nullptr};
 
-VkRenderPass CoffeeMaker::Renderer::Vulkan::RenderPass::GetRenderPass() { return gVkpRenderPass; }
+VkRenderPass CoffeeMaker::Renderer::Vulkan::RenderPass::GetRenderPass() { return gRenderPass->vkpRenderPass; }
 
 void CoffeeMaker::Renderer::Vulkan::RenderPass::Set(VkRenderPass renderpass) { gVkpRenderPass = renderpass; }
 
@@ -22,6 +22,12 @@ void CoffeeMaker::Renderer::Vulkan::RenderPass::CreateRenderPass() {
   gRenderPass->InitCreateSubPassDes();
   gRenderPass->InitCreateRenderPassInfo();
   gRenderPass->InitCreateRenderPass();
+}
+
+void CoffeeMaker::Renderer::Vulkan::RenderPass::Destroy() {
+  using LogicDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
+
+  vkDestroyRenderPass(LogicalDevice::GetLogicalDevice(), gVkpRenderPass, nullptr);
 }
 
 void CoffeeMaker::Renderer::Vulkan::RenderPass::InitCreateSubpassDependency() {

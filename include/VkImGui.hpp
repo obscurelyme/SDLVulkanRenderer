@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Editor/ImGuiEditorObject.hpp"
+#include "Renderer/Vulkan/Core.hpp"
 #include "Vulkan.hpp"
 
 class VulkanImGui {
@@ -19,7 +20,7 @@ class VulkanImGui {
     window = mainWindow;
     renderer = mainRenderer;
 
-    logicalDevice = renderer->logicalDevice.Handle;
+    logicalDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice::GetLogicalDevice();
 
     /**
      * STEP #1: create descriptor pool for IMGUI
@@ -57,15 +58,15 @@ class VulkanImGui {
     // initialize imgui for Vulkan
     ImGui_ImplVulkan_InitInfo init_info{};
     init_info.Instance = renderer->vulkanInstance;
-    init_info.PhysicalDevice = renderer->physicalDevice.Handle;
+    init_info.PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice::GetVkpPhysicalDeviceInUse();
     init_info.Device = logicalDevice;
-    init_info.Queue = renderer->logicalDevice.GraphicsQueue;
+    init_info.Queue = CoffeeMaker::Renderer::Vulkan::LogicalDevice::GraphicsQueue;
     init_info.DescriptorPool = imguiPool;
     init_info.MinImageCount = 3;
     init_info.ImageCount = 3;
     init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-    ImGui_ImplVulkan_Init(&init_info, renderer->renderPass.Handle);
+    ImGui_ImplVulkan_Init(&init_info, CoffeeMaker::Renderer::Vulkan::RenderPass::GetRenderPass());
 
     // execute a gpu command to upload imgui font textures
     renderer->ImmediateSubmit([&](VkCommandBuffer cmd) { ImGui_ImplVulkan_CreateFontsTexture(cmd); });

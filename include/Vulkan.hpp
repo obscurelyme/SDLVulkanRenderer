@@ -2,8 +2,8 @@
 #define _coffeemaker_vulkan_hpp
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_vulkan.h>
-#include <vk_mem_alloc.h>
+// #include <SDL2/SDL_vulkan.h>
+// #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
 #include <array>
@@ -16,19 +16,16 @@
 
 #include "Editor/ImGuiEditorObject.hpp"
 #include "Rectangle.hpp"
+#include "Renderer/Vulkan/Core.hpp"
 #include "Triangle.hpp"
-#include "VulkanCommands.hpp"
-#include "VulkanFramebuffer.hpp"
-#include "VulkanLogicalDevice.hpp"
-#include "VulkanPhysicalDevice.hpp"
-#include "VulkanRenderPass.hpp"
-#include "VulkanSwapchain.hpp"
-#include "VulkanSync.hpp"
-
-struct UploadContext {
-  VkFence _uploadFence;
-  VkCommandPool _commandPool;
-};
+#include "VulkanShaderManager.hpp"
+// #include "VulkanCommands.hpp"
+// #include "VulkanFramebuffer.hpp"
+// #include "VulkanLogicalDevice.hpp"
+// #include "VulkanPhysicalDevice.hpp"
+// #include "VulkanRenderPass.hpp"
+// #include "VulkanSwapchain.hpp"
+// #include "VulkanSync.hpp"
 
 class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
   public:
@@ -36,9 +33,6 @@ class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
 
   explicit Vulkan(const std::string &applicationName, SDL_Window *window);
   ~Vulkan();
-
-  VkInstance InstanceHandle() const;
-  VkDevice LogicalDevice() const { return logicalDevice.Handle; }
 
   void BeginRender();
   void EndRender();
@@ -109,7 +103,7 @@ class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
   void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT &createInfo);
 
   void PickPhysicalDevice();
-  bool IsDeviceSuitable(VulkanPhysicalDevice &device);
+  bool IsDeviceSuitable(CoffeeMaker::Renderer::Vulkan::PhysicalDevice *device);
   void CreateLogicalDevice();
   /**
    * @brief After choosing a physical device, query what extensions are required
@@ -153,14 +147,6 @@ class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
   bool framebufferResized;
 
   public:
-  VmaAllocator allocator;
-  VulkanPhysicalDevice physicalDevice{nullptr};
-  VulkanLogicalDevice logicalDevice;
-  VulkanSwapchain swapChain;
-  VulkanCommands commands;
-  VulkanRenderPass renderPass;
-  VulkanFramebuffer framebuffer;
-  VulkanSync syncUtils;
   size_t currentFrame{0};
   int framecount;
 
@@ -168,13 +154,13 @@ class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
   CoffeeMaker::Primitives::Rectangle *rectangle;
 
   // NOTE: use for immediate submit command steps
-  UploadContext _uploadContext;
+  CoffeeMaker::Renderer::Vulkan::UploadContext _uploadContext;
 
   private:
   std::vector<std::function<void(void)>> swapChainDestroyedListeners{};
   std::vector<std::function<void(void)>> swapChainCreatedListeners{};
 
-  // EDITOR DETAILS
+  // EDITOR DETAILS //////////////////////////////////////////////////////////////////
   private:
   // List available physical devices to get info on.
   void Editor_PhysicalDeviceSelection();

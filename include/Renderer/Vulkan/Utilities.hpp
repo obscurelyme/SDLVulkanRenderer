@@ -32,6 +32,11 @@ namespace CoffeeMaker::Renderer::Vulkan {
     std::vector<VkPresentModeKHR> presentModes;
   };
 
+  struct UploadContext {
+    VkFence uploadFence;
+    VkCommandPool commandPool;
+  };
+
 }  // namespace CoffeeMaker::Renderer::Vulkan
 
 #endif

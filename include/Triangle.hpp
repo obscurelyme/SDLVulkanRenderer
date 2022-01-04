@@ -12,10 +12,10 @@
 #include "Editor/ImGuiEditorObject.hpp"
 #include "KeyboardEvent.hpp"
 #include "Renderer/Vertex.hpp"
+#include "Renderer/Vulkan/Commands.hpp"
 #include "Renderer/Vulkan/Core.hpp"
-#include "VulkanCommands.hpp"
+#include "Renderer/Vulkan/Surface.hpp"
 #include "VulkanShaderManager.hpp"
-#include "VulkanSwapchain.hpp"
 #include "imgui.h"
 
 class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::ImGuiEditorObject {
@@ -24,8 +24,7 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
   using Pipeline = CoffeeMaker::Renderer::Vulkan::Pipeline;
 
   public:
-  Triangle(VulkanCommands* commands, VulkanSwapchain* swapChain) :
-      cmds(commands), swapChain(swapChain), _mainCamera(Camera::MainCamera()) {
+  Triangle() : _mainCamera(Camera::MainCamera()) {
     CreateTriangleMesh();
     MakeMeshPipeline();
   }
@@ -65,19 +64,22 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
   }
 
   void Draw() {
-    VkCommandBuffer cmd = cmds->GetCurrentBuffer();
+    using Commands = CoffeeMaker::Renderer::Vulkan::Commands;
+    using Swapchain = CoffeeMaker::Renderer::Vulkan::Swapchain;
+
+    VkCommandBuffer cmd = Commands::GetCurrentBuffer();
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = static_cast<float>(swapChain->GetExtent().width);
-    viewport.height = static_cast<float>(swapChain->GetExtent().height);
+    viewport.width = static_cast<float>(Swapchain::GetSwapchain()->extent.width);
+    viewport.height = static_cast<float>(Swapchain::GetSwapchain()->extent.height);
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
     VkRect2D scissor{{
                          0,
                          0,
                      },
-                     swapChain->GetExtent()};
+                     Swapchain::GetSwapchain()->extent};
     vkCmdSetViewport(cmd, 0, 1, &viewport);
     vkCmdSetScissor(cmd, 0, 1, &scissor);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pPipeline);
@@ -137,16 +139,6 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
     }
   }
 
-  void OnSwapChainDestroyed() {
-    // noop
-    // CleanUpPipelines();
-  }
-
-  void OnSwapChainRecreated(VulkanCommands* c, VulkanSwapchain* s) {
-    cmds = c;
-    swapChain = s;
-  }
-
   private:
   void CreateTriangleMesh() {
     mesh.vertices.resize(3);
@@ -184,8 +176,6 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
 
   Pipeline pipeline;
 
-  VulkanCommands* cmds{nullptr};
-  VulkanSwapchain* swapChain{nullptr};
   std::shared_ptr<Camera> _mainCamera;
   glm::vec2 position{0.0f, 0.0f};
   glm::vec2 movement{0.0f};

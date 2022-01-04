@@ -2,11 +2,11 @@
 
 #include <glm/glm.hpp>
 
-#include "VulkanCommands.hpp"
+#include "Renderer/Vulkan/Commands.hpp"
+#include "Renderer/Vulkan/Swapchain.hpp"
 #include "VulkanShaderManager.hpp"
 
-CoffeeMaker::Primitives::Rectangle::Rectangle(VulkanCommands* commands, VulkanSwapchain* swapChain) :
-    cmds(commands), swapChain(swapChain), _mainCamera(Camera::MainCamera()) {
+CoffeeMaker::Primitives::Rectangle::Rectangle() : _mainCamera(Camera::MainCamera()) {
   mesh.vertices.resize(4);
   mesh.vertices[0].position = {-0.5f, -0.5f, 1.0f};  // bottom left
   mesh.vertices[1].position = {0.5f, -0.5f, 1.0f};   // bottom right
@@ -33,21 +33,23 @@ CoffeeMaker::Primitives::Rectangle::~Rectangle() {
 
 void CoffeeMaker::Primitives::Rectangle::Draw() {
   using PushConstants = CoffeeMaker::Renderer::MeshPushConstants;
+  using Commands = CoffeeMaker::Renderer::Vulkan::Commands;
+  using Swapchain = CoffeeMaker::Renderer::Vulkan::Swapchain;
 
-  VkCommandBuffer cmd = cmds->GetCurrentBuffer();
+  VkCommandBuffer cmd = Commands::GetCurrentBuffer();
 
   VkViewport viewport{};
   viewport.x = 0.0f;
   viewport.y = 0.0f;
-  viewport.width = static_cast<float>(swapChain->GetExtent().width);
-  viewport.height = static_cast<float>(swapChain->GetExtent().height);
+  viewport.width = static_cast<float>(Swapchain::GetSwapchain()->extent.width);
+  viewport.height = static_cast<float>(Swapchain::GetSwapchain()->extent.height);
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
   VkRect2D scissor{{
                        0,
                        0,
                    },
-                   swapChain->GetExtent()};
+                   Swapchain::GetSwapchain()->extent};
   vkCmdSetViewport(cmd, 0, 1, &viewport);
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 

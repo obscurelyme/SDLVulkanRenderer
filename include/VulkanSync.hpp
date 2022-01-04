@@ -67,7 +67,6 @@ class VulkanSync {
   void Build() {
     VkResult imgAvailResult = vkCreateSemaphore(_logicalDevice->Handle, &_semaphoreInfo, nullptr, &_presentSemaphore);
     VkResult renderFinResult = vkCreateSemaphore(_logicalDevice->Handle, &_semaphoreInfo, nullptr, &_renderSemaphore);
-
     VkResult fenceResult = vkCreateFence(_logicalDevice->Handle, &_fenceInfo, nullptr, &_renderFence);
 
     if (imgAvailResult != VK_SUCCESS || renderFinResult != VK_SUCCESS || fenceResult != VK_SUCCESS) {

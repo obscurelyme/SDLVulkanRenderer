@@ -1,5 +1,6 @@
 #include "Vulkan.hpp"
 
+#include <SDL2/SDL_vulkan.h>
 #include <fmt/core.h>
 
 #include <algorithm>
@@ -9,12 +10,8 @@
 #include <vector>
 
 #include "Camera.hpp"
-#include "Renderer/Vulkan/LogicalDevice.hpp"
-#include "Renderer/Vulkan/MemoryAllocator.hpp"
-#include "Renderer/Vulkan/RenderPass.hpp"
-#include "Renderer/Vulkan/Surface.hpp"
+#include "SimpleMessageBox.hpp"
 #include "VkInitializers.hpp"
-#include "VulkanShaderManager.hpp"
 #include "imgui.h"
 #include "imgui_impl_vulkan.h"
 
@@ -69,36 +66,39 @@ Vulkan::Vulkan(const std::string &applicationName, SDL_Window *window) :
   CreateSemaphores();
   InitSyncStructures();
   _mainRenderer = this;
-  rectangle = new CoffeeMaker::Primitives::Rectangle(&commands, &swapChain);
-  triangle = new Triangle(&commands, &swapChain);
+  rectangle = new CoffeeMaker::Primitives::Rectangle();
+  triangle = new Triangle();
 }
 
 Vulkan::~Vulkan() {
-  vkDeviceWaitIdle(logicalDevice.Handle);
+  using LogicalDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
+  using Synchronization = CoffeeMaker::Renderer::Vulkan::Synchronization;
+  using Commands = CoffeeMaker::Renderer::Vulkan::Commands;
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
+
+  vkDeviceWaitIdle(LogicalDevice::GetLogicalDevice());
 
   if (enableValidationLayers) {
     DestroyDebugUtilsMessengerEXT(nullptr);
   }
 
   // Destroy upload commands
-  vkDestroyCommandPool(logicalDevice.Handle, _uploadContext._commandPool, nullptr);
-  vkDestroyFence(logicalDevice.Handle, _uploadContext._uploadFence, nullptr);
+  vkDestroyCommandPool(LogicalDevice::GetLogicalDevice(), _uploadContext.commandPool, nullptr);
+  vkDestroyFence(LogicalDevice::GetLogicalDevice(), _uploadContext.uploadFence, nullptr);
 
   CleanupSwapChain();
   delete triangle;
   delete rectangle;
   // delete suzanne;
 
-  syncUtils.DestroyHandles();
-  commands.DestroyPool();
+  Synchronization::DestroySyncTools();
+  Commands::DestroyCommandPool();
   VulkanShaderManager::CleanAllShaders();
   CoffeeMaker::Renderer::Vulkan::MemoryAllocator::DestroyAllocator();
-  logicalDevice.DestroyHandle();
-  VulkanPhysicalDevice::ClearAllPhysicalDevices();
-  if (vulkanInstanceInitialized) {
-    CoffeeMaker::Renderer::Vulkan::Surface::Destroy();
-    vkDestroyInstance(vulkanInstance, nullptr);
-  }
+  LogicalDevice::Destroy();
+  PhysicalDevice::ClearAllPhysicalDevices();
+  CoffeeMaker::Renderer::Vulkan::Surface::Destroy();
+  vkDestroyInstance(vulkanInstance, nullptr);
 }
 
 void Vulkan::EditorUpdate() {
@@ -131,16 +131,17 @@ void Vulkan::EditorUpdate() {
 }
 
 void Vulkan::Editor_PhysicalDeviceSelection() {
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
   if (ImGui::BeginListBox("#physicalDevices")) {
-    auto physicalDevices = VulkanPhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
+    auto physicalDevices = PhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
     for (size_t i = 0; i < physicalDevices.size(); i++) {
       bool selected = false;
       if (selectedPhysicalDeviceIndex == 9999) {
-        selected = physicalDevices[i] == physicalDevice;
+        selected = *physicalDevices[i] == *PhysicalDevice::GetPhysicalDeviceInUse();
       } else {
         selected = selectedPhysicalDeviceIndex == i;
       }
-      if (ImGui::Selectable(physicalDevices[i].Name(), selected)) {
+      if (ImGui::Selectable(physicalDevices[i]->Name(), selected)) {
         selectedPhysicalDeviceIndex = i;
       }
       if (selected) {
@@ -156,8 +157,10 @@ void Vulkan::Editor_PhysicalDeviceSelection() {
 }
 
 void Vulkan::Editor_PhysicalDeviceInformation() {
-  auto physicalDevices = VulkanPhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
-  VulkanPhysicalDevice selectedDevice = physicalDevices[selectedPhysicalDeviceIndex];
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
+
+  auto physicalDevices = PhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
+  PhysicalDevice *selectedDevice = physicalDevices[selectedPhysicalDeviceIndex];
 
   if (ImGui::CollapsingHeader("Supported Extensions")) {
     if (ImGui::BeginTable("Supported Extensions", 2, ImGuiTableFlags_ScrollY, ImVec2(0.f, 300.f), 300.f)) {
@@ -167,7 +170,7 @@ void Vulkan::Editor_PhysicalDeviceInformation() {
       ImGui::TableSetColumnIndex(1);
       ImGui::Text("Spec Version");
 
-      for (auto &supportedExtension : selectedDevice.SupportedExtensions) {
+      for (auto &supportedExtension : selectedDevice->SupportedExtensions) {
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
         ImGui::Text("%s", supportedExtension.extensionName);
@@ -179,25 +182,25 @@ void Vulkan::Editor_PhysicalDeviceInformation() {
   }
 
   if (ImGui::CollapsingHeader("Device Properties")) {
-    ImGui::BulletText("API Version: %d", selectedDevice.Properties.apiVersion);
-    ImGui::BulletText("Driver Version: %d", selectedDevice.Properties.driverVersion);
-    ImGui::BulletText("Vendor ID: %d", selectedDevice.Properties.vendorID);
-    ImGui::BulletText("Device ID: %d", selectedDevice.Properties.deviceID);
-    ImGui::BulletText("Device Name: %s", selectedDevice.Properties.deviceName);
-    ImGui::BulletText("Pipeline Cache UUID: %s", selectedDevice.Properties.pipelineCacheUUID);
+    ImGui::BulletText("API Version: %d", selectedDevice->Properties.apiVersion);
+    ImGui::BulletText("Driver Version: %d", selectedDevice->Properties.driverVersion);
+    ImGui::BulletText("Vendor ID: %d", selectedDevice->Properties.vendorID);
+    ImGui::BulletText("Device ID: %d", selectedDevice->Properties.deviceID);
+    ImGui::BulletText("Device Name: %s", selectedDevice->Properties.deviceName);
+    ImGui::BulletText("Pipeline Cache UUID: %s", selectedDevice->Properties.pipelineCacheUUID);
   }
 
   if (ImGui::CollapsingHeader("Device Features")) {
     // NOTE: Set to address of the first feature.
-    VkBool32 *pFeature = &selectedDevice.Features.robustBufferAccess;
-    for (size_t i = 0; i < sizeof(selectedDevice.Features) / sizeof(VkBool32); i++) {
+    VkBool32 *pFeature = &selectedDevice->Features.robustBufferAccess;
+    for (size_t i = 0; i < sizeof(selectedDevice->Features) / sizeof(VkBool32); i++) {
       ImGui::BulletText("%s: %s", features[i], *pFeature == 1 ? "On" : "Off");
       pFeature++;
     }
   }
 
   if (ImGui::CollapsingHeader("Swapchain Support")) {
-    for (auto presentMode : selectedDevice.SwapChainSupport.presentModes) {
+    for (auto presentMode : selectedDevice->SwapChainSupport.presentModes) {
       std::string str = fmt::format("{}", VkPresentModeKHRString(presentMode));
       ImGui::Checkbox(str.c_str(), &selectedPresentMode);
     }
@@ -207,14 +210,10 @@ void Vulkan::Editor_PhysicalDeviceInformation() {
 Vulkan *Vulkan::GetRenderer() { return _mainRenderer; }
 
 void Vulkan::CleanupSwapChain() {
-  framebuffer.ClearFramebufferHandles();
-  commands.FreeCommandBuffers();
-  // TODO: Notify all pipelines and layouts to be destroyed...
-  EmitSwapChainWillBeDestroyed();
-  triangle->OnSwapChainDestroyed();
-  renderPass.DestroyHandle();
-  swapChain.DestroyHandle();
-  std::cout << "Cleaned up swap chain" << std::endl;
+  CoffeeMaker::Renderer::Vulkan::Framebuffer::ClearFramebuffers();
+  CoffeeMaker::Renderer::Vulkan::Commands::FreeCommandBuffers();
+  CoffeeMaker::Renderer::Vulkan::RenderPass::Destroy();
+  CoffeeMaker::Renderer::Vulkan::Swapchain::Destroy();
 }
 
 /**
@@ -230,20 +229,20 @@ void Vulkan::CleanupSwapChain() {
 void Vulkan::FramebufferResize() { RecreateSwapChain(); }
 
 void Vulkan::RecreateSwapChain() {
-  vkDeviceWaitIdle(logicalDevice.Handle);
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
+  vkDeviceWaitIdle(CoffeeMaker::Renderer::Vulkan::LogicalDevice::GetLogicalDevice());
 
   CleanupSwapChain();
 
-  physicalDevice.QuerySwapChainSupport();
-  CreateSwapChain();
-  CreateRenderPass();
-  CreateFramebuffer();
-  CreateCommands(true);
-  // TODO: Nofity all pipelines and layouts to be created...
-  EmitSwapChainCreated();
-  triangle->OnSwapChainRecreated(&commands, &swapChain);
-  Camera::SetMainCameraDimensions(physicalDevice.SwapChainSupport.capabilities.currentExtent.width,
-                                  physicalDevice.SwapChainSupport.capabilities.currentExtent.height);
+  CoffeeMaker::Renderer::Vulkan::PhysicalDevice::GetPhysicalDeviceInUse()->QuerySwapchainSupport();
+  CoffeeMaker::Renderer::Vulkan::Swapchain::CreateSwapchain();
+  CoffeeMaker::Renderer::Vulkan::RenderPass::CreateRenderPass();
+  CoffeeMaker::Renderer::Vulkan::Framebuffer::CreateFramebuffers();
+  CoffeeMaker::Renderer::Vulkan::Commands::CreateCommandBuffers();
+
+  Camera::SetMainCameraDimensions(
+      PhysicalDevice::GetPhysicalDeviceInUse()->SwapChainSupport.capabilities.currentExtent.width,
+      PhysicalDevice::GetPhysicalDeviceInUse()->SwapChainSupport.capabilities.currentExtent.height);
 }
 
 void BeginRender() {
@@ -255,25 +254,33 @@ void EndRender() {
 }
 
 void Vulkan::Draw() {
+  using Synchronization = CoffeeMaker::Renderer::Vulkan::Synchronization;
+  using LogicalDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
+  using Swapchain = CoffeeMaker::Renderer::Vulkan::Swapchain;
+  using Commands = CoffeeMaker::Renderer::Vulkan::Commands;
+
   triangle->Update();
-  syncUtils.WaitForFence2(currentFrame);
-  syncUtils.ResetFence2(currentFrame);
+
+  Synchronization::WaitForFence(currentFrame);
+  Synchronization::ResetFence(currentFrame);
 
   ImGui::Render();
 
   uint32_t imageIndex;
   VkResult nxtImageResult =
-      vkAcquireNextImageKHR(logicalDevice.Handle, swapChain.Handle, 1000000000,
-                            syncUtils.PresentSemaphore2(currentFrame), VK_NULL_HANDLE, &imageIndex);
+      vkAcquireNextImageKHR(LogicalDevice::GetLogicalDevice(), Swapchain::GetVkpSwapchain(), 1000000000,
+                            Synchronization::imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
   // Check if a previous frame is using this image (i.e. there is its fence to wait on)
-  if (syncUtils.imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
+  if (Synchronization::imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
 #ifdef COFFEEMAKER_STANDARD_WAIT_FOR_FENCE
     // NOTE: This is what the line should be for all systems, with timeout set to UINT32_MAX
-    VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, UINT32_MAX);
+    VkResult r = vkWaitForFences(LogicalDevice::GetLogicalDevice(), 1, &Synchronization::imagesInFlight[imageIndex],
+                                 VK_TRUE, UINT32_MAX);
 #else
     // TODO: Figure out why on Linux w/ integrated chips, this will deadlock the whole application.
-    VkResult r = vkWaitForFences(logicalDevice.Handle, 1, &syncUtils.imagesInFlight[imageIndex], VK_TRUE, 0);
+    VkResult r =
+        vkWaitForFences(LogicalDevice::GetLogicalDevice(), 1, &Synchronization::imagesInFlight[imageIndex], VK_TRUE, 0);
 #endif
     if (r != VK_SUCCESS && r != VK_TIMEOUT) {
       std::cout << r << std::endl;
@@ -281,7 +288,8 @@ void Vulkan::Draw() {
     }
   }
   // Mark the image as now being in use by this frame
-  syncUtils.imagesInFlight[imageIndex] = syncUtils.RenderFence2(currentFrame);
+  Synchronization::imagesInFlight[imageIndex] = Synchronization::inFlightFences[currentFrame];
+  // syncUtils.RenderFence2(currentFrame);
 
   if (nxtImageResult == VK_ERROR_OUT_OF_DATE_KHR) {
     RecreateSwapChain();
@@ -289,23 +297,21 @@ void Vulkan::Draw() {
     SimpleMessageBox::ShowError("Drawing Error", fmt::format("Vulkan Error Code: [{}]", nxtImageResult));
   }
 
-  commands.CurrentCmdBufferIndex = imageIndex;
-  commands.ResetCommandBuffers2(imageIndex);
-  float flash = std::abs(std::sin(framecount / 120.f));
-  commands.SetRenderClearColor({0.0f, 0.0f, flash, 1.0f});
+  Commands::CurrentCmdBufferIndex = imageIndex;
+  Commands::ResetCommandBuffers(imageIndex);
 
-  commands.BeginRecording(imageIndex);
+  Commands::BeginRecording(imageIndex);
   // vkCmd* stuff...
 
   triangle->Draw();
   rectangle->Draw();
 
-  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commands.GetCurrentBuffer());
-  commands.EndRecording(imageIndex);
+  ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), Commands::GetCurrentBuffer());
+  Commands::EndRecording(imageIndex);
 
-  VkSemaphore presentSemaRef = syncUtils.PresentSemaphore2(currentFrame);
-  VkSemaphore renderSemaRef = syncUtils.RenderSemaphore2(currentFrame);
-  VkCommandBuffer cmd = commands.GetCurrentBuffer();
+  // VkSemaphore presentSemaRef = syncUtils.PresentSemaphore2(currentFrame);
+  // VkSemaphore renderSemaRef = syncUtils.RenderSemaphore2(currentFrame);
+  VkCommandBuffer cmd = Commands::GetCurrentBuffer();
 
   VkSubmitInfo submitInfo{};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -315,29 +321,29 @@ void Vulkan::Draw() {
   submitInfo.pWaitDstStageMask = &waitStage;
 
   submitInfo.waitSemaphoreCount = 1;
-  submitInfo.pWaitSemaphores = &presentSemaRef;
+  submitInfo.pWaitSemaphores = &Synchronization::imageAvailableSemaphores[currentFrame];
 
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &cmd;
 
   submitInfo.signalSemaphoreCount = 1;
-  submitInfo.pSignalSemaphores = &renderSemaRef;
+  submitInfo.pSignalSemaphores = &Synchronization::imageRenderSemaphores[currentFrame];
 
-  vkResetFences(logicalDevice.Handle, 1, &syncUtils.inFlightFences[currentFrame]);
-  vkQueueSubmit(logicalDevice.GraphicsQueue, 1, &submitInfo, syncUtils.RenderFence2(currentFrame));
+  vkResetFences(LogicalDevice::GetLogicalDevice(), 1, &Synchronization::inFlightFences[currentFrame]);
+  vkQueueSubmit(LogicalDevice::GraphicsQueue, 1, &submitInfo, Synchronization::inFlightFences[currentFrame]);
 
   VkPresentInfoKHR presentInfo{};
   presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   presentInfo.waitSemaphoreCount = 1;
-  presentInfo.pWaitSemaphores = &renderSemaRef;
+  presentInfo.pWaitSemaphores = &Synchronization::imageRenderSemaphores[currentFrame];
 
-  std::array<VkSwapchainKHR, 1> swapChains{swapChain.Handle};
+  std::array<VkSwapchainKHR, 1> swapChains{Swapchain::GetVkpSwapchain()};
   presentInfo.swapchainCount = 1;
   presentInfo.pSwapchains = swapChains.data();
   presentInfo.pImageIndices = &imageIndex;
   presentInfo.pResults = nullptr;  // Optional
 
-  VkResult presentResult = vkQueuePresentKHR(logicalDevice.PresentQueue, &presentInfo);
+  VkResult presentResult = vkQueuePresentKHR(LogicalDevice::PresentQueue, &presentInfo);
 
   if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR || framebufferResized) {
     framebufferResized = false;
@@ -413,8 +419,6 @@ void Vulkan::InitVulkan() {
   }
   vulkanInstanceInitialized = true;
 }
-
-VkInstance Vulkan::InstanceHandle() const { return vulkanInstance; }
 
 void Vulkan::ShowError(const std::string &title, const std::string &message) {
   SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), message.c_str(), windowHandle);
@@ -519,67 +523,63 @@ void Vulkan::DestroyDebugUtilsMessengerEXT(const VkAllocationCallbacks *pAllocat
 }
 
 void Vulkan::PickPhysicalDevice() {
-  std::vector<VulkanPhysicalDevice> &devices = VulkanPhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
 
-  for (VulkanPhysicalDevice &device : devices) {
-    device.SetSurface(CoffeeMaker::Renderer::Vulkan::Surface::GetSurface());
-    device.FindQueueFamilies();
-    device.QuerySwapChainSupport();
-  }
+  auto devices = PhysicalDevice::EnumeratePhysicalDevices(vulkanInstance);
 
-  for (VulkanPhysicalDevice &device : devices) {
+  for (auto device : devices) {
     if (IsDeviceSuitable(device)) {
-      physicalDevice = device;
-      AddRequiredDeviceExtensionSupport(physicalDevice.Handle);
-      break;
+      PhysicalDevice::SelectPhysicalDevice(device->id);
+      AddRequiredDeviceExtensionSupport(device->vkpPhysicalDevice);
+      return;
     }
   }
 
-  if (physicalDevice.Handle == VK_NULL_HANDLE) {
-    ShowError("Vulkan Physical Device", "Unable to find suitable GPU.");
-  }
+  // if (physicalDevice.Handle == VK_NULL_HANDLE) {
+  //   ShowError("Vulkan Physical Device", "Unable to find suitable GPU.");
+  // }
 }
 
-bool Vulkan::IsDeviceSuitable(VulkanPhysicalDevice &device) {
+bool Vulkan::IsDeviceSuitable(CoffeeMaker::Renderer::Vulkan::PhysicalDevice *device) {
   bool swapChainAdequate = false;
-  bool extensionsSupported = device.AreExtensionsSupported(deviceExtensions);
+  bool extensionsSupported = device->AreExtensionsSupported(deviceExtensions);
   if (extensionsSupported) {
-    // device.QuerySwapChainSupport();
-    swapChainAdequate = !device.SwapChainSupport.formats.empty() && !device.SwapChainSupport.presentModes.empty();
+    swapChainAdequate = !device->SwapChainSupport.formats.empty() && !device->SwapChainSupport.presentModes.empty();
   }
-
-  fmt::print("Checking device: {}\n", device.ToString());
 
 #define FORCE_INTEGRATED_GPU
 #ifdef FORCE_INTEGRATED_GPU
   bool result =
-      device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsIntegratedGPU();
+      device->QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device->IsIntegratedGPU();
 #else
-  bool result = device.QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device.IsDiscreteGPU();
+  bool result =
+      device->QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device->IsDiscreteGPU();
 #endif
 
   if (result) {
-    fmt::print("Using device: {}\n", device.Name());
+    fmt::print("Using device: {}\n", device->Name());
   }
 
   return result;
 }
 
 void Vulkan::CreateLogicalDevice() {
-  logicalDevice.SetPhysicalDevice(physicalDevice);
-  logicalDevice.SetExentions(deviceExtensions);
-  logicalDevice.SetLayers(VULKAN_LAYERS);
-  logicalDevice.EnableValidation(enableValidationLayers);
-  logicalDevice.SetUp();
-  logicalDevice.Create();
-  CoffeeMaker::Renderer::Vulkan::LogicalDevice::Set(logicalDevice.Handle);
-  VulkanShaderManager::AssignLogicalDevice(logicalDevice.Handle);
+  using LogicalDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
+
+  LogicalDevice::SetExentions(deviceExtensions);
+  LogicalDevice::SetLayers(VULKAN_LAYERS);
+  LogicalDevice::CreateLogicalDevice(true);
+
+  VulkanShaderManager::AssignLogicalDevice(LogicalDevice::GetLogicalDevice());
 }
 
 void Vulkan::CreateMemoryAllocator() {
   using MemAlloc = CoffeeMaker::Renderer::Vulkan::MemoryAllocator;
-  MemAlloc::CreateAllocator(physicalDevice.Handle, logicalDevice.Handle, vulkanInstance);
-  allocator = MemAlloc::GetAllocator();
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
+  using LogicalDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
+
+  MemAlloc::CreateAllocator(PhysicalDevice::GetVkpPhysicalDeviceInUse(), LogicalDevice::GetLogicalDevice(),
+                            vulkanInstance);
 }
 
 void Vulkan::CreateSurface() { CoffeeMaker::Renderer::Vulkan::Surface::CreateSurface(windowHandle, vulkanInstance); }
@@ -602,66 +602,36 @@ void Vulkan::AddRequiredDeviceExtensionSupport(VkPhysicalDevice device) {
   }
 }
 
-void Vulkan::CreateSwapChain() {
-  swapChain.SetWindow(windowHandle);
-  swapChain.SetPhysicalDevice(&physicalDevice);
-  swapChain.SetLogicalDevice(&logicalDevice);
-  swapChain.ChooseSwapSurfaceFormat();
-  swapChain.ChoosePresentationMode();
-  swapChain.ChooseSwapExtent();
-  swapChain.Create();
-  swapChain.CreateImageViews();
-  swapChain.CreateDepthImageView(allocator);
-}
+void Vulkan::CreateSwapChain() { CoffeeMaker::Renderer::Vulkan::Swapchain::CreateSwapchain(); }
 
-void Vulkan::CreateRenderPass() {
-  renderPass.SetLogicalDevice(&logicalDevice);
-  renderPass.SetSwapchain(&swapChain);
-  renderPass.SetDepthFormat(swapChain.GetDepthFormat());
-  renderPass.Build();
-  CoffeeMaker::Renderer::Vulkan::RenderPass::Set(renderPass.Handle);
-}
+void Vulkan::CreateRenderPass() { CoffeeMaker::Renderer::Vulkan::RenderPass::CreateRenderPass(); }
 
-void Vulkan::CreateFramebuffer() {
-  framebuffer.SetLogicalDevice(&logicalDevice);
-  framebuffer.SetRenderPass(&renderPass);
-  framebuffer.SetSwapchain(&swapChain);
-  framebuffer.Build();
-}
+void Vulkan::CreateFramebuffer() { CoffeeMaker::Renderer::Vulkan::Framebuffer::CreateFramebuffers(); }
 
 void Vulkan::CreateCommands(bool recreation) {
-  commands.SetLogicalDevice(&logicalDevice);
-  commands.SetSwapchain(&swapChain);
-  commands.SetFramebuffers(&framebuffer);
-  commands.SetRenderPass(&renderPass);
-  commands.SetPhysicalDevice(&physicalDevice);
-  if (!recreation) {
-    commands.CreateCommandPool();
-  }
-  commands.CreateCommandBuffers();
+  CoffeeMaker::Renderer::Vulkan::Commands::CreateCommandPool();
+  CoffeeMaker::Renderer::Vulkan::Commands::CreateCommandBuffers();
 }
 
 void Vulkan::CreateUploadCommands() {
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
+  using LogicalDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
+
   VkCommandPoolCreateInfo uploadCommandPoolInfo =
-      VkInit::CommandPoolCreateInfo(physicalDevice.QueueFamilies.graphicsFamily.value());
-  vkCreateCommandPool(logicalDevice.Handle, &uploadCommandPoolInfo, nullptr, &_uploadContext._commandPool);
+      VkInit::CommandPoolCreateInfo(PhysicalDevice::GetPhysicalDeviceInUse()->QueueFamilies.graphicsFamily.value());
+  vkCreateCommandPool(LogicalDevice::GetLogicalDevice(), &uploadCommandPoolInfo, nullptr, &_uploadContext.commandPool);
 }
 
-void Vulkan::CreateSemaphores() {
-  syncUtils.SetLogicalDevice(&logicalDevice);
-  syncUtils.CreateSemaphores();
-  syncUtils.CreateRenderFence();
-  syncUtils.imagesInFlight.resize(swapChain.GetImageCount(), VK_NULL_HANDLE);
-  syncUtils.Build();
-  syncUtils.Build2();
-}
+void Vulkan::CreateSemaphores() { CoffeeMaker::Renderer::Vulkan::Synchronization::CreateSyncTools(); }
 
 void Vulkan::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function) {
-  VkCommandBufferAllocateInfo cmdAllocInfo = VkInit::CommandBufferAllocateInfo(_uploadContext._commandPool, 1);
+  using LogicalDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
+
+  VkCommandBufferAllocateInfo cmdAllocInfo = VkInit::CommandBufferAllocateInfo(_uploadContext.commandPool, 1);
 
   VkCommandBuffer cmd;
 
-  vkAllocateCommandBuffers(logicalDevice.Handle, &cmdAllocInfo, &cmd);
+  vkAllocateCommandBuffers(LogicalDevice::GetLogicalDevice(), &cmdAllocInfo, &cmd);
 
   VkCommandBufferBeginInfo cmdBeginInfo = VkInit::CommandBufferBeginInfo(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
@@ -672,15 +642,17 @@ void Vulkan::ImmediateSubmit(std::function<void(VkCommandBuffer cmd)> &&function
   vkEndCommandBuffer(cmd);
 
   VkSubmitInfo submit = VkInit::SubmitInfo(&cmd);
-  vkQueueSubmit(logicalDevice.GraphicsQueue, 1, &submit, _uploadContext._uploadFence);
-  vkWaitForFences(logicalDevice.Handle, 1, &_uploadContext._uploadFence, true, 9999999999);
-  vkResetFences(logicalDevice.Handle, 1, &_uploadContext._uploadFence);
-  vkResetCommandPool(logicalDevice.Handle, _uploadContext._commandPool, 0);
+  vkQueueSubmit(LogicalDevice::GraphicsQueue, 1, &submit, _uploadContext.uploadFence);
+  vkWaitForFences(LogicalDevice::GetLogicalDevice(), 1, &_uploadContext.uploadFence, true, 9999999999);
+  vkResetFences(LogicalDevice::GetLogicalDevice(), 1, &_uploadContext.uploadFence);
+  vkResetCommandPool(LogicalDevice::GetLogicalDevice(), _uploadContext.commandPool, 0);
 }
 
 void Vulkan::InitSyncStructures() {
+  using LogicalDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
+
   VkFenceCreateInfo uploadFenceCreateInfo = VkInit::FenceCreateInfo();
-  vkCreateFence(logicalDevice.Handle, &uploadFenceCreateInfo, nullptr, &_uploadContext._uploadFence);
+  vkCreateFence(LogicalDevice::GetLogicalDevice(), &uploadFenceCreateInfo, nullptr, &_uploadContext.uploadFence);
 }
 
 void Vulkan::EmitSwapChainWillBeDestroyed() {

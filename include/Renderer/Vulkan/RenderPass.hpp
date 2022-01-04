@@ -13,6 +13,7 @@ namespace CoffeeMaker::Renderer::Vulkan {
     static void Set(VkRenderPass renderpass);
     static void CreateRenderPass();
     static VkRenderPass GetRenderPass();
+    static void Destroy();
     static VkRenderPass gVkpRenderPass;
     static RenderPass* gRenderPass;
 

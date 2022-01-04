@@ -6,8 +6,6 @@
 #include "Camera.hpp"
 #include "Renderer/Vertex.hpp"
 #include "Renderer/Vulkan/Pipeline.hpp"
-#include "VulkanCommands.hpp"
-#include "VulkanSwapchain.hpp"
 
 namespace CoffeeMaker::Primitives {
 
@@ -17,7 +15,7 @@ namespace CoffeeMaker::Primitives {
     using Pipeline = CoffeeMaker::Renderer::Vulkan::Pipeline;
 
     public:
-    Rectangle(VulkanCommands* commands, VulkanSwapchain* swapChain);
+    Rectangle();
     ~Rectangle();
 
     Mesh mesh{};
@@ -33,8 +31,6 @@ namespace CoffeeMaker::Primitives {
     float h{0.0f};
 
     Pipeline pipelineBuilder;
-    VulkanCommands* cmds{nullptr};
-    VulkanSwapchain* swapChain{nullptr};
     std::shared_ptr<Camera> _mainCamera;
   };
 

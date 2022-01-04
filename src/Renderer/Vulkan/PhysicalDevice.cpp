@@ -58,7 +58,10 @@ CoffeeMaker::Renderer::Vulkan::PhysicalDevice* CoffeeMaker::Renderer::Vulkan::Ph
 }
 
 void CoffeeMaker::Renderer::Vulkan::PhysicalDevice::SelectPhysicalDevice(size_t idToSelect) {
-  gPhysicalDeviceInUse->selected = false;
+  if (gPhysicalDeviceInUse != nullptr) {
+    gPhysicalDeviceInUse->selected = false;
+  }
+
   for (size_t j = 0; j < gPhysicalDevices.size(); j++) {
     if (gPhysicalDevices[j]->id == idToSelect) {
       gPhysicalDevices[j]->selected = true;
