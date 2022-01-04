@@ -40,6 +40,11 @@ CoffeeMaker::Renderer::Vulkan::PhysicalDevice::EnumeratePhysicalDevices(VkInstan
   return gPhysicalDevices;
 }
 
+std::vector<CoffeeMaker::Renderer::Vulkan::PhysicalDevice*>&
+CoffeeMaker::Renderer::Vulkan::PhysicalDevice::EnumeratePhysicalDevices() {
+  return gPhysicalDevices;
+}
+
 void CoffeeMaker::Renderer::Vulkan::PhysicalDevice::ClearAllPhysicalDevices() {
   for (auto d : gPhysicalDevices) {
     delete d;

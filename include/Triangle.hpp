@@ -65,23 +65,8 @@ class Triangle : public SDLKeyboardEventListener, public CoffeeMaker::Editor::Im
 
   void Draw() {
     using Commands = CoffeeMaker::Renderer::Vulkan::Commands;
-    using Swapchain = CoffeeMaker::Renderer::Vulkan::Swapchain;
 
     VkCommandBuffer cmd = Commands::GetCurrentBuffer();
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(Swapchain::GetSwapchain()->extent.width);
-    viewport.height = static_cast<float>(Swapchain::GetSwapchain()->extent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    VkRect2D scissor{{
-                         0,
-                         0,
-                     },
-                     Swapchain::GetSwapchain()->extent};
-    vkCmdSetViewport(cmd, 0, 1, &viewport);
-    vkCmdSetScissor(cmd, 0, 1, &scissor);
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.pPipeline);
     VkDeviceSize offset = 0;
     vkCmdBindVertexBuffers(cmd, 0, 1, &mesh.vertexBuffer.buffer, &offset);

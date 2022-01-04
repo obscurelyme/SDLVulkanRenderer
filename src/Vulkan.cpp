@@ -303,6 +303,21 @@ void Vulkan::Draw() {
   Commands::BeginRecording(imageIndex);
   // vkCmd* stuff...
 
+  VkViewport viewport{};
+  viewport.x = 0.0f;
+  viewport.y = 0.0f;
+  viewport.width = static_cast<float>(Swapchain::GetSwapchain()->extent.width);
+  viewport.height = static_cast<float>(Swapchain::GetSwapchain()->extent.height);
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+  VkRect2D scissor{{
+                       0,
+                       0,
+                   },
+                   Swapchain::GetSwapchain()->extent};
+  vkCmdSetViewport(Commands::GetCurrentBuffer(), 0, 1, &viewport);
+  vkCmdSetScissor(Commands::GetCurrentBuffer(), 0, 1, &scissor);
+
   triangle->Draw();
   rectangle->Draw();
 
@@ -417,7 +432,6 @@ void Vulkan::InitVulkan() {
   }
   vulkanInstanceInitialized = true;
 }
-
 void Vulkan::ShowError(const std::string &title, const std::string &message) {
   SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, title.c_str(), message.c_str(), windowHandle);
   exit(1);
@@ -613,6 +627,7 @@ void Vulkan::CreateRenderPass() { CoffeeMaker::Renderer::Vulkan::RenderPass::Cre
 void Vulkan::CreateFramebuffer() { CoffeeMaker::Renderer::Vulkan::Framebuffer::CreateFramebuffers(); }
 
 void Vulkan::CreateCommands(bool recreation) {
+  CoffeeMaker::Renderer::Vulkan::Commands::SetClearValues();
   CoffeeMaker::Renderer::Vulkan::Commands::CreateCommandPool();
   CoffeeMaker::Renderer::Vulkan::Commands::CreateCommandBuffers();
 }

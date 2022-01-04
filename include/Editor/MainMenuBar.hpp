@@ -5,7 +5,6 @@
 #include <imgui.h>
 
 #include "Renderer/Vulkan/PhysicalDevice.hpp"
-#include "Vulkan.hpp"
 
 namespace CoffeeMaker::Editor {
   class MainMenuBar {
@@ -16,7 +15,7 @@ namespace CoffeeMaker::Editor {
       if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("Menu")) {
           if (ImGui::BeginMenu("GPUs")) {
-            for (auto gpu : PhysicalDevice::EnumeratePhysicalDevices(Vulkan::GetRenderer()->vulkanInstance)) {
+            for (auto gpu : PhysicalDevice::EnumeratePhysicalDevices()) {
               ImGui::MenuItem(gpu->Name(), nullptr, gpu->IsSelected());
             }
             ImGui::EndMenu();

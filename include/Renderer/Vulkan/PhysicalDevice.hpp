@@ -20,6 +20,7 @@ namespace CoffeeMaker::Renderer::Vulkan {
   class PhysicalDevice {
     public:
     static std::vector<PhysicalDevice*>& EnumeratePhysicalDevices(VkInstance instance);
+    static std::vector<PhysicalDevice*>& EnumeratePhysicalDevices();
     static void ClearAllPhysicalDevices();
     static VkPhysicalDevice GetVkpPhysicalDeviceInUse();
     static PhysicalDevice* GetPhysicalDeviceInUse();
