@@ -25,10 +25,11 @@ set(RENDERER_VULKAN_SRC
   src/Renderer/Vulkan/LogicalDevice.cpp
   src/Renderer/Vulkan/MemoryAllocator.cpp
   src/Renderer/Vulkan/Pipeline.cpp
+  src/Renderer/Vulkan/PhysicalDevice.cpp
   src/Renderer/Vulkan/RenderPass.cpp
   src/Renderer/Vulkan/Surface.cpp
   src/Renderer/Vulkan/Swapchain.cpp
-  src/Renderer/Vulkan/Syncronization.cpp
+  src/Renderer/Vulkan/Synchronization.cpp
   src/Renderer/Vulkan/Utilities.cpp
   src/Renderer/Material.cpp
   src/Renderer/Vertex.cpp
@@ -58,19 +59,28 @@ target_include_directories(CoffeeRender PRIVATE  ${OPENGL_INCLUDE_DIRS})
 
 if (VULKAN_FOUND)
   message(STATUS "Found Vulkan... ${Vulkan_LIBRARIES}")
-  target_link_libraries(CoffeeRender PRIVATE ${Vulkan_LIBRARIES}
+  target_link_libraries(CoffeeRender PRIVATE ${Vulkan_LIBRARIES} ${OPENGL_LIBRARIES})
+  target_link_libraries(CoffeeRender PRIVATE 
     glm::glm
-    SDL2::SDL2
-    SDL2::SDL2main
-    SDL2::SDL2-static
     fmt::fmt-header-only
     unofficial::vulkan-memory-allocator::vulkan-memory-allocator
     tinyobjloader::tinyobjloader
     imgui::imgui
-    SDL2::SDL2_image
-    ${OPENGL_LIBRARIES}
   )
+  if (WIN32)
+    # Dynamic libs for window
+    target_link_libraries(CoffeeRender PRIVATE SDL2::SDL2 SDL2::SDL2main SDL2::SDL2_image)
+  else()
+    # Static libs for Linux/OSX
+    target_link_libraries(CoffeeRender PRIVATE
+      SDL2::SDL2
+      SDL2::SDL2main
+      SDL2::SDL2-static
+      SDL2::SDL2_image
+    )
+  endif()
   target_include_directories(CoffeeRender PUBLIC ${Vulkan_INCLUDE_DIRS})
+  message("Vulkan include dirs ${Vulkan_INCLUDE_DIRS}")
 else()
   message(FATAL_ERROR "Unable to find VulkanSDK. Please confirm you have Vulkan properly set up for this environment.")
 endif()

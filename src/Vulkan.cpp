@@ -559,7 +559,7 @@ bool Vulkan::IsDeviceSuitable(CoffeeMaker::Renderer::Vulkan::PhysicalDevice *dev
     swapChainAdequate = !device->SwapChainSupport.formats.empty() && !device->SwapChainSupport.presentModes.empty();
   }
 
-#define FORCE_INTEGRATED_GPU
+// #define FORCE_INTEGRATED_GPU
 #ifdef FORCE_INTEGRATED_GPU
   bool result =
       device->QueueFamilies.IsComplete() && extensionsSupported && swapChainAdequate && device->IsIntegratedGPU();

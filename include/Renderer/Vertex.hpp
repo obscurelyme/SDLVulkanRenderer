@@ -2,6 +2,7 @@
 #define _coffeemaker_renderer_vertex_hpp
 
 #include <glm/glm.hpp>
+#include <string>
 
 #include "Renderer/Vulkan/MemoryAllocator.hpp"
 #include "Renderer/Vulkan/Pipeline.hpp"
