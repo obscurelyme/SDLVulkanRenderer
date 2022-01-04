@@ -2,8 +2,6 @@
 #define _coffeemaker_vulkan_hpp
 
 #include <SDL2/SDL.h>
-// #include <SDL2/SDL_vulkan.h>
-// #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
 #include <array>
@@ -19,13 +17,6 @@
 #include "Renderer/Vulkan/Core.hpp"
 #include "Triangle.hpp"
 #include "VulkanShaderManager.hpp"
-// #include "VulkanCommands.hpp"
-// #include "VulkanFramebuffer.hpp"
-// #include "VulkanLogicalDevice.hpp"
-// #include "VulkanPhysicalDevice.hpp"
-// #include "VulkanRenderPass.hpp"
-// #include "VulkanSwapchain.hpp"
-// #include "VulkanSync.hpp"
 
 class Vulkan : public CoffeeMaker::Editor::ImGuiEditorObject {
   public:
