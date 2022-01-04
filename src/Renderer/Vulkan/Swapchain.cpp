@@ -21,6 +21,12 @@ void CoffeeMaker::Renderer::Vulkan::Swapchain::CreateSwapchain() {
   gSwapchain->InitCreateDepthImageView();
 }
 
+VkSwapchainKHR CoffeeMaker::Renderer::Vulkan::Swapchain::GetVkpSwapchain() { return gSwapchain->pSwapchain; }
+
+CoffeeMaker::Renderer::Vulkan::Swapchain* CoffeeMaker::Renderer::Vulkan::Swapchain::GetSwapchain() {
+  return gSwapchain;
+}
+
 void CoffeeMaker::Renderer::Vulkan::Swapchain::Destroy() {
   using LogicDevice = CoffeeMaker::Renderer::Vulkan::LogicalDevice;
   using MemAlloc = CoffeeMaker::Renderer::Vulkan::MemoryAllocator;
@@ -37,35 +43,46 @@ void CoffeeMaker::Renderer::Vulkan::Swapchain::Destroy() {
 }
 
 void CoffeeMaker::Renderer::Vulkan::Swapchain::InitChooseSwapSurfaceFormat() {
-  // TODO: get globally set PhysicalDevice
-  // for (const auto& availableFormat : _physicalDevice->SwapChainSupport.formats) {
-  //   if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
-  //       availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-  //     surfaceFormat = availableFormat;
-  //     return;
-  //   }
-  // }
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
+  using SwapchainSupportDetails = CoffeeMaker::Renderer::Vulkan::VulkanSwapChainSupportDetails;
 
-  // // NOTE: settle on the first format as it most likely is "good enough"
-  // surfaceFormat = _physicalDevice->SwapChainSupport.formats[0];
+  SwapchainSupportDetails details = PhysicalDevice::GetPhysicalDeviceInUse()->SwapChainSupport;
+
+  for (const auto& availableFormat : details.formats) {
+    if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
+        availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+      surfaceFormat = availableFormat;
+      return;
+    }
+  }
+
+  // NOTE: settle on the first format as it most likely is good enough
+  surfaceFormat = details.formats[0];
 }
 
 void CoffeeMaker::Renderer::Vulkan::Swapchain::InitChoosePresentMode() {
-  // for (const auto& availablePresentMode : _physicalDevice->SwapChainSupport.presentModes) {
-  //   if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
-  //     _presentMode = availablePresentMode;
-  //     return;
-  //   }
-  // }
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
+  using SwapchainSupportDetails = CoffeeMaker::Renderer::Vulkan::VulkanSwapChainSupportDetails;
 
-  // _presentMode = VK_PRESENT_MODE_FIFO_KHR;
-  gSwapchain->presentMode = VK_PRESENT_MODE_FIFO_KHR;
+  SwapchainSupportDetails details = PhysicalDevice::GetPhysicalDeviceInUse()->SwapChainSupport;
+
+  for (const auto& availablePresentMode : details.presentModes) {
+    if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
+      presentMode = availablePresentMode;
+      return;
+    }
+  }
+
+  presentMode = VK_PRESENT_MODE_FIFO_KHR;
 }
 
 void CoffeeMaker::Renderer::Vulkan::Swapchain::InitChooseSwapExtent() {
-  // TODO: use global physical device extent
-  // VulkanSwapChainSupportDetails details = _physicalDevice->SwapChainSupport;
-  // extent = details.capabilities.currentExtent;
+  using PhysicalDevice = CoffeeMaker::Renderer::Vulkan::PhysicalDevice;
+  using SwapchainSupportDetails = CoffeeMaker::Renderer::Vulkan::VulkanSwapChainSupportDetails;
+
+  SwapchainSupportDetails details = PhysicalDevice::GetPhysicalDeviceInUse()->SwapChainSupport;
+
+  extent = details.capabilities.currentExtent;
 }
 
 void CoffeeMaker::Renderer::Vulkan::Swapchain::InitCreateImageViews() {

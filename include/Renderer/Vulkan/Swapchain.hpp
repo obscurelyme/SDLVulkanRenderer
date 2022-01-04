@@ -12,7 +12,8 @@ namespace CoffeeMaker::Renderer::Vulkan {
   class Swapchain {
     public:
     static void CreateSwapchain();
-    static VkSwapchainKHR GetSwapchain();
+    static VkSwapchainKHR GetVkpSwapchain();
+    static Swapchain* GetSwapchain();
     static void Destroy();
     static void SetPresentMode(VkPresentModeKHR mode);
 
